@@ -1,0 +1,9 @@
+[[regexps]]
+regexp = '''^\[TeamName\] QWERTY - (?P<ep>\d+)'''
+tmdbid = 123456
+season = 2
+
+[[regexps]]
+regexp = '''ABCDEFG - (?P<ep>\d+) \[.*'''
+tmdbid = 123457
+season = 1
