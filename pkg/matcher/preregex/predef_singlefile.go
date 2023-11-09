@@ -6,7 +6,6 @@ import (
 	"asmediamgr/pkg/component/renamer"
 	"asmediamgr/pkg/matcher"
 	"fmt"
-	"io/ioutil"
 	"os"
 	"path/filepath"
 	"regexp"
@@ -55,12 +54,7 @@ func NewPreRegexMatcher(
 	}
 	configFilePath := filepath.Join(confPath, "regexp.toml")
 	atLeastOne := false
-	f, err := os.Open(configFilePath)
-	if err != nil {
-		return nil, err
-	}
-	defer f.Close()
-	bytes, err := ioutil.ReadAll(f)
+	bytes, err := os.ReadFile(configFilePath)
 	if err != nil {
 		return nil, err
 	}
