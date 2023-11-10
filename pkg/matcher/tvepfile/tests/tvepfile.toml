@@ -1,5 +1,5 @@
 [[formats]]
-regexp = '''^(?P<tvname>.*)\.S(?P<season>\d+)E(?P<epnum>\d+)'''
+regexp = '''^(?P<tvname>.*)\.[sS](?P<season>\d+)[eE](?P<epnum>\d+) tmdbid-(?P<tmdbid>\d+)'''
 
 [[formats]]
-regexp = '''^(?P<tvname>.*)\.s(?P<season>\d+)e(?P<epnum>\d+)'''
+regexp = '''^(?P<tvname>.*)\.[sS](?P<season>\d+)[eE](?P<epnum>\d+)'''
