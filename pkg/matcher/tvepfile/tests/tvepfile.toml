@@ -1,0 +1,5 @@
+[[formats]]
+regexp = '''^(?P<tvname>.*)\.S(?P<season>\d+)E(?P<epnum>\d+)'''
+
+[[formats]]
+regexp = '''^(?P<tvname>.*)\.s(?P<season>\d+)e(?P<epnum>\d+)'''
