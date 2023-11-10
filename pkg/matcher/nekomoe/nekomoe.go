@@ -2,6 +2,7 @@ package nekomoe
 
 import (
 	"asmediamgr/pkg/common"
+	"asmediamgr/pkg/component/renamehelper"
 	"asmediamgr/pkg/component/renamer"
 	"asmediamgr/pkg/component/tmdbhttp"
 	"asmediamgr/pkg/matcher"
@@ -106,7 +107,7 @@ func (matcher *NekomoeMather) match(info *common.Info) (bool, error) {
 	}
 	matched.EpNum = epNum
 	matched.Season = season
-	new, err := renamer.TargetTVEpFilePath(matched, matcher.targetPath, fileInfo.Ext)
+	new, err := renamehelper.TargetTVEpFilePath(matched, matcher.targetPath, fileInfo.Ext)
 	if err != nil {
 		return false, err
 	}

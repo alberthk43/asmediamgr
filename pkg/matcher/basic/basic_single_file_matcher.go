@@ -2,6 +2,7 @@ package basic
 
 import (
 	"asmediamgr/pkg/common"
+	"asmediamgr/pkg/component/renamehelper"
 	"asmediamgr/pkg/component/renamer"
 	"asmediamgr/pkg/component/tmdbhttp"
 	"fmt"
@@ -157,7 +158,7 @@ func (matcher *BasicSingleFileMatcher) match(
 	matched.Season = season
 	matched.EpNum = epNum
 	// rename
-	new, err := renamer.TargetTVEpFilePath(matched, matcher.targetPath, fileInfo.Ext)
+	new, err := renamehelper.TargetTVEpFilePath(matched, matcher.targetPath, fileInfo.Ext)
 	if err != nil {
 		return false, err
 	}
