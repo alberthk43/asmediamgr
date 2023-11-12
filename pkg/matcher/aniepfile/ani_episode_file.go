@@ -2,6 +2,7 @@ package aniepfile
 
 import (
 	"asmediamgr/pkg/common"
+	"asmediamgr/pkg/component/renamehelper"
 	"asmediamgr/pkg/component/renamer"
 	"asmediamgr/pkg/matcher"
 	"fmt"
@@ -119,7 +120,7 @@ func (m *AniEpisodeFileMatcher) Match(
 	}
 	matched.EpNum = int32(epNum)
 	matched.Season = int32(season)
-	new, err := renamer.TargetTVEpFilePath(matched, m.targetPath, fileInfo.Ext)
+	new, err := renamehelper.TargetTVEpFilePath(matched, m.targetPath, fileInfo.Ext)
 	if err != nil {
 		return false, RenameErr{err: err}
 	}

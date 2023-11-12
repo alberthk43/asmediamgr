@@ -3,6 +3,7 @@ package preregex
 import (
 	"asmediamgr/pkg/common"
 	"asmediamgr/pkg/component/fileinfo"
+	"asmediamgr/pkg/component/renamehelper"
 	"asmediamgr/pkg/component/renamer"
 	"asmediamgr/pkg/matcher"
 	"fmt"
@@ -148,7 +149,7 @@ func (m *PreRegexMatcher) Match(info *common.Info) (bool, error) {
 	}
 	tmdbTvInfo.EpNum = epNum
 	tmdbTvInfo.Season = season
-	new, err := renamer.TargetTVEpFilePath(tmdbTvInfo, m.targetPath, fileInfo.Ext)
+	new, err := renamehelper.TargetTVEpFilePath(tmdbTvInfo, m.targetPath, fileInfo.Ext)
 	if err != nil {
 		return false, err
 	}

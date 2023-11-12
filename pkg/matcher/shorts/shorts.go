@@ -2,6 +2,7 @@ package shorts
 
 import (
 	"asmediamgr/pkg/common"
+	"asmediamgr/pkg/component/renamehelper"
 	"asmediamgr/pkg/component/renamer"
 	"asmediamgr/pkg/component/tmdbhttp"
 	"fmt"
@@ -92,7 +93,7 @@ func (matcher *ShortMatcher) Match(
 	if err != nil {
 		return false, fmt.Errorf("conv tmdb err:%s", err)
 	}
-	new, err := renamer.TargetMovieShortFilePath(matched, matcher.targetPath, publisher, fileInfo.Ext)
+	new, err := renamehelper.TargetMovieShortFilePath(matched, matcher.targetPath, publisher, fileInfo.Ext)
 	if err != nil {
 		return false, fmt.Errorf("target path err:%s", err)
 	}

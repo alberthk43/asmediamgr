@@ -2,6 +2,7 @@ package singlemoviefile
 
 import (
 	"asmediamgr/pkg/common"
+	"asmediamgr/pkg/component/renamehelper"
 	"asmediamgr/pkg/component/renamer"
 	"asmediamgr/pkg/matcher"
 	"fmt"
@@ -99,7 +100,7 @@ func (m *SingleMovieFileMatcher) Match(
 	if err != nil {
 		return false, err
 	}
-	new, err := renamer.TargetMovieFilePath(matched, m.targetPath, fileInfo.Ext)
+	new, err := renamehelper.TargetMovieFilePath(matched, m.targetPath, fileInfo.Ext)
 	if err != nil {
 		return false, err
 	}

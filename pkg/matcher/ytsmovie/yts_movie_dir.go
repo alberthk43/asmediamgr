@@ -3,6 +3,7 @@ package ytsmovie
 import (
 	"asmediamgr/pkg/common"
 	"asmediamgr/pkg/component/fileinfo"
+	"asmediamgr/pkg/component/renamehelper"
 	"asmediamgr/pkg/component/renamer"
 	"asmediamgr/pkg/component/tmdbhttp"
 	"asmediamgr/pkg/matcher"
@@ -154,7 +155,7 @@ func (mather *YTSMovieFileMatcher) match(
 		movieOldPath := renamer.Path{info.DirPath}
 		movieOldPath = append(movieOldPath, movieFile.Paths...)
 		movieOldPath = append(movieOldPath, fmt.Sprintf("%s%s", movieFile.Name, movieFile.Ext))
-		movieNewPath, err := renamer.TargetMovieFilePath(matched, mather.targetPath, movieFile.Ext)
+		movieNewPath, err := renamehelper.TargetMovieFilePath(matched, mather.targetPath, movieFile.Ext)
 		if err != nil {
 			return false, err
 		}
@@ -167,7 +168,7 @@ func (mather *YTSMovieFileMatcher) match(
 			subtileOldPath := renamer.Path{info.DirPath}
 			subtileOldPath = append(subtileOldPath, subtitleFile.Paths...)
 			subtileOldPath = append(subtileOldPath, fmt.Sprintf("%s%s", subtitleFile.Name, subtitleFile.Ext))
-			subtileNewPath, err := renamer.TargetMovieFilePath(matched, mather.targetPath, subtitleFile.Ext)
+			subtileNewPath, err := renamehelper.TargetMovieFilePath(matched, mather.targetPath, subtitleFile.Ext)
 			if err != nil {
 				return false, err
 			}
@@ -185,7 +186,7 @@ func (mather *YTSMovieFileMatcher) match(
 				subtileOldPath := renamer.Path{info.DirPath}
 				subtileOldPath = append(subtileOldPath, subtitleFile.Paths...)
 				subtileOldPath = append(subtileOldPath, fmt.Sprintf("%s%s", subtitleFile.Name, subtitleFile.Ext))
-				subtileNewPath, err := renamer.TargetMovieSubtitleFilePath(matched, mather.targetPath, mappingTo, subtitleFile.Ext)
+				subtileNewPath, err := renamehelper.TargetMovieSubtitleFilePath(matched, mather.targetPath, mappingTo, subtitleFile.Ext)
 				if err != nil {
 					return false, err
 				}

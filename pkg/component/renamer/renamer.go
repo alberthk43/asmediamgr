@@ -1,12 +1,10 @@
 package renamer
 
 import (
-	"asmediamgr/pkg/common"
 	"fmt"
 	"log"
 	"os"
 	"path/filepath"
-	"strings"
 )
 
 type Path []string
@@ -62,118 +60,4 @@ func (*FileRenamer) renameOne(old, new Path) error {
 		return err
 	}
 	return nil
-}
-
-func TargetMovieFilePath(
-	matched *common.MatchedMovie,
-	targetDir string,
-	ext string,
-) (Path, error) {
-	if matched == nil {
-		return nil, fmt.Errorf("movie nil")
-	}
-	if ext == "" {
-		return nil, fmt.Errorf("ext empty")
-	}
-	escapedTitle := ReplaceSpecialCharacters(matched.OriginalTitle)
-	path := Path{targetDir}
-	path = append(path, fmt.Sprintf("%s (%.4d) [tmdbid-%d]", escapedTitle, matched.Year, matched.TmdbID))
-	path = append(path, fmt.Sprintf("%s (%.4d)%s", escapedTitle, matched.Year, ext))
-	return path, nil
-}
-
-func TargetMovieShortFilePath(
-	matched *common.MatchedMovie,
-	targetDir string,
-	publisherName string,
-	ext string,
-) (Path, error) {
-	if matched == nil {
-		return nil, fmt.Errorf("movie nil")
-	}
-	if ext == "" {
-		return nil, fmt.Errorf("ext empty")
-	}
-	escapedTitle := ReplaceSpecialCharacters(matched.OriginalTitle)
-	path := Path{targetDir}
-	path = append(path, fmt.Sprintf("%s (%.4d) [tmdbid-%d]", escapedTitle, matched.Year, matched.TmdbID))
-	path = append(path, "shorts")
-	if publisherName != "" {
-		path = append(path, fmt.Sprintf("%s %s%s", escapedTitle, publisherName, ext))
-	} else {
-		path = append(path, fmt.Sprintf("short %s %s%s", escapedTitle, publisherName, ext))
-	}
-	return path, nil
-}
-
-func TargetMovieSubtitleFilePath(
-	matched *common.MatchedMovie,
-	targetDir string,
-	lang string,
-	ext string,
-) (Path, error) {
-	if matched == nil {
-		return nil, fmt.Errorf("movie nil")
-	}
-	if ext == "" {
-		return nil, fmt.Errorf("ext empty")
-	}
-	escapedTitle := ReplaceSpecialCharacters(matched.OriginalTitle)
-	path := Path{targetDir}
-	path = append(path, fmt.Sprintf("%s (%.4d) [tmdbid-%d]", escapedTitle, matched.Year, matched.TmdbID))
-	if lang != "" {
-		path = append(path, fmt.Sprintf("%s (%.4d).%s%s", escapedTitle, matched.Year, lang, ext))
-	} else {
-		path = append(path, fmt.Sprintf("%s (%.4d)%s", escapedTitle, matched.Year, ext))
-	}
-	return path, nil
-}
-
-var specialCharacterMapping = map[string]string{
-	`#`: ` `,
-	// `%`: ` `,
-	// `&`: ` `,
-	// `{`: ` `,
-	// `}`: ` `,
-	`\`: ` `,
-	// `$`: ` `,
-	// `!`: ` `,
-	`'`: ` `,
-	// `"`: ` `,
-	`:`: ` `,
-	// `<`: ` `,
-	// `>`: ` `,
-	// `*`: ` `,
-	// `?`: ` `,
-	`/`: ` `,
-	// `+`: ` `,
-	"`": ` `,
-	`|`: ` `,
-	`=`: ` `,
-}
-
-func ReplaceSpecialCharacters(str string) string {
-	for k, v := range specialCharacterMapping {
-		str = strings.ReplaceAll(str, k, v)
-	}
-	return str
-}
-
-func TargetTVEpFilePath(
-	matched *common.MatchedTV,
-	targetDir string,
-	ext string,
-) (Path, error) {
-	if matched == nil {
-		return nil, fmt.Errorf("tv nil")
-	}
-	if ext == "" {
-		return nil, fmt.Errorf("ext empty")
-	}
-	escapedTitle := ReplaceSpecialCharacters(matched.OriginalTitle)
-	path := Path{targetDir}
-	path = append(path, fmt.Sprintf("%s (%.4d) [tmdbid-%d]", escapedTitle, matched.Year, matched.TmdbID))
-	path = append(path, fmt.Sprintf("Season %d", matched.Season))
-	path = append(path, fmt.Sprintf("S%0.2dE%0.2d%s", matched.Season, matched.EpNum, ext))
-	return path, nil
 }
