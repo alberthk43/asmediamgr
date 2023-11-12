@@ -2,12 +2,22 @@ package tests
 
 import "asmediamgr/pkg/matcher"
 
-var _ matcher.TargetService = (*MockTargetService)(nil)
+var _ matcher.PathService = (*MockTargetService)(nil)
 
 type MockTargetService struct {
-	TargetDirPath string
+	TargetPathPath string
+	MotherPathPath string
+	ConfigPathPath string
 }
 
-func (s *MockTargetService) TargetDir() string {
-	return s.TargetDirPath
+func (s *MockTargetService) TargetTvPath() string {
+	return s.TargetPathPath
+}
+
+func (s *MockTargetService) MotherPath() string {
+	return s.MotherPathPath
+}
+
+func (s *MockTargetService) ConfigPath() string {
+	return s.ConfigPathPath
 }

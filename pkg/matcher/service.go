@@ -26,6 +26,14 @@ type RenamerService interface {
 	Rename(records []renamer.RenameRecord) error
 }
 
-type TargetService interface {
-	TargetDir() string
+// PathService define the dir path service, commonly used at the first stage of renaming files and directories
+type PathService interface {
+	// TargetTvPath return target tv dir path
+	TargetTvPath() string
+
+	// MotherPath return mother dir path
+	MotherPath() string
+
+	// ConfigPath return config dir path
+	ConfigPath() string
 }

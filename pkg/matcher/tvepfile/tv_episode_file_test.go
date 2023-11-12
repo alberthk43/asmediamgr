@@ -37,7 +37,7 @@ func TestTvEpFileMatcher(t *testing.T) {
 		},
 	}
 	mockTargetService := &tests.MockTargetService{
-		TargetDirPath: "targetpath",
+		TargetPathPath: "targetpath",
 	}
 	m, err := NewTvEpisodeFileMatcher(
 		"./tests/",
@@ -96,7 +96,7 @@ func TestTvEpFileMatcherTmdbid(t *testing.T) {
 		},
 	}
 	mockTargetService := &tests.MockTargetService{
-		TargetDirPath: "targetpath",
+		TargetPathPath: "targetpath",
 	}
 	m, err := NewTvEpisodeFileMatcher(
 		"./tests/",

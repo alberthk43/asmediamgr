@@ -1,6 +1,7 @@
 package matcherservice
 
 import (
+	"asmediamgr/pkg/component/dirpath"
 	"asmediamgr/pkg/component/renamer"
 	"asmediamgr/pkg/component/tmdbhttp"
 	"asmediamgr/pkg/matcher"
@@ -14,6 +15,7 @@ import (
 	"asmediamgr/pkg/matcher/sevenacg"
 	"asmediamgr/pkg/matcher/shorts"
 	"asmediamgr/pkg/matcher/singlemoviefile"
+	"asmediamgr/pkg/matcher/tvepfile"
 	"asmediamgr/pkg/matcher/ytsmovie"
 	"os"
 )
@@ -33,14 +35,20 @@ func InitMatcher(moviePath, tvPath, javPath string) error {
 	tmdbHttpClient, err := tmdbhttp.NewTmdbHttpClient(
 		apiKey,
 	)
+	if err != nil {
+		return err
+	}
 	tmdbService, err := tmdbhttp.NewTmdbService(tmdbHttpClient)
 	if err != nil {
 		return err
 	}
+	fileRenamer := &renamer.FileRenamer{}
+	dirPathService, err := dirpath.NewDirPath(
+		dirpath.TargetTvPathOption(moviePath),
+	)
 	if err != nil {
 		return err
 	}
-	fileRenamer := &renamer.FileRenamer{}
 	smlMth, err := singlemoviefile.NewSingleMovieFileMatcher(
 		tmdbService,
 		fileRenamer,
@@ -140,6 +148,13 @@ func InitMatcher(moviePath, tvPath, javPath string) error {
 	err = matcherMgr.AddMatcher("huanyue", huanyue)
 	if err != nil {
 		return err
+	}
+	tvepfile, err := tvepfile.NewTvEpisodeFileMatcher(".", tmdbService, fileRenamer, dirPathService)
+	if err == nil {
+		err = matcherMgr.AddMatcher("tvepfile", tvepfile)
+		if err != nil {
+			return err
+		}
 	}
 	return nil
 }

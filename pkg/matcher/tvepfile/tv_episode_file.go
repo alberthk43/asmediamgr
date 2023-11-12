@@ -29,7 +29,7 @@ type formatInfo struct {
 type TvEpisodeFileMatcher struct {
 	tmdbService   matcher.TmdbService
 	renameService matcher.RenamerService
-	targetService matcher.TargetService
+	targetService matcher.PathService
 
 	regexpList []*formatInfo
 }
@@ -38,7 +38,7 @@ func NewTvEpisodeFileMatcher(
 	configDir string,
 	tmdbService matcher.TmdbService,
 	renameService matcher.RenamerService,
-	targetService matcher.TargetService,
+	dirPathService matcher.PathService,
 ) (*TvEpisodeFileMatcher, error) {
 	if configDir == "" {
 		return nil, fmt.Errorf("config dir nil")
@@ -52,7 +52,7 @@ func NewTvEpisodeFileMatcher(
 	m := &TvEpisodeFileMatcher{
 		tmdbService:   tmdbService,
 		renameService: renameService,
-		targetService: targetService,
+		targetService: dirPathService,
 	}
 	configFilePath := filepath.Join(configDir, configFileName)
 	data, err := os.ReadFile(configFilePath)
@@ -170,7 +170,7 @@ func (m *TvEpisodeFileMatcher) matchWithRegexp(
 	}
 	tvInfo.Season = seasonNum
 	tvInfo.EpNum = epNum
-	targetDir := m.targetService.TargetDir()
+	targetDir := m.targetService.TargetTvPath()
 	aRecord, err := renamehelper.BuildRenameRecordFromSubInfo(
 		info.DirPath,
 		targetDir,
