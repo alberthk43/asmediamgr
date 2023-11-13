@@ -140,3 +140,14 @@ func ReplaceSpecialCharacters(str string) string {
 	}
 	return str
 }
+
+func TargetMovieDir(
+	movieInfo *common.MatchedMovie,
+) (dirName string) {
+	dirName = fmt.Sprintf("%s (%.4d) [tmdbid-%d]", movieInfo.OriginalTitle, movieInfo.Year, movieInfo.TmdbID)
+	return dirName
+}
+
+func TargetMovieShortDir() (shortDirName string) {
+	return "shorts"
+}

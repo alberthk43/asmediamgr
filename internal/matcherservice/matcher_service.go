@@ -13,6 +13,7 @@ import (
 	"asmediamgr/pkg/matcher/nekomoe"
 	"asmediamgr/pkg/matcher/preregex"
 	"asmediamgr/pkg/matcher/sevenacg"
+	"asmediamgr/pkg/matcher/short"
 	"asmediamgr/pkg/matcher/shorts"
 	"asmediamgr/pkg/matcher/singlemoviefile"
 	"asmediamgr/pkg/matcher/tvepfile"
@@ -30,7 +31,7 @@ func init() {
 	matcherMgr = matcher.NewMatchMgr()
 }
 
-func InitMatcher(moviePath, tvPath, javPath string) error {
+func InitMatcher(motherPath, moviePath, tvPath, javPath string) error {
 	apiKey := os.Getenv("TMDB_READ_TOKEN")
 	tmdbHttpClient, err := tmdbhttp.NewTmdbHttpClient(
 		apiKey,
@@ -45,6 +46,7 @@ func InitMatcher(moviePath, tvPath, javPath string) error {
 	fileRenamer := &renamer.FileRenamer{}
 	dirPathService, err := dirpath.NewDirPath(
 		dirpath.TargetTvPathOption(moviePath),
+		dirpath.MotherPathOption(motherPath),
 	)
 	if err != nil {
 		return err
@@ -155,6 +157,14 @@ func InitMatcher(moviePath, tvPath, javPath string) error {
 		if err != nil {
 			return err
 		}
+	}
+	shortMth, err := short.NewShortMatcher(tmdbService, fileRenamer, dirPathService)
+	if err != nil {
+		return err
+	}
+	err = matcherMgr.AddMatcher("short", shortMth)
+	if err != nil {
+		return err
 	}
 	return nil
 }

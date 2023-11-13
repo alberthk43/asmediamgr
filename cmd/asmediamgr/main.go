@@ -10,14 +10,14 @@ import (
 )
 
 var (
-	dirPath   string
-	moviePath string
-	tvPath    string
-	javPath   string
+	motherPath string
+	moviePath  string
+	tvPath     string
+	javPath    string
 )
 
 func init() {
-	flag.StringVar(&dirPath, "dirpath", ".", "dir path for all")
+	flag.StringVar(&motherPath, "motherpath", ".", "mother path for all")
 	flag.StringVar(&moviePath, "moviepath", ".", "target movie path")
 	flag.StringVar(&tvPath, "tvpath", ".", "target tv path")
 	flag.StringVar(&javPath, "javpath", ".", "target tv path")
@@ -32,7 +32,7 @@ func main() {
 
 func doWork() error {
 	log.SetFlags(log.LstdFlags | log.Lshortfile)
-	err := matcherservice.InitMatcher(moviePath, tvPath, javPath)
+	err := matcherservice.InitMatcher(motherPath, moviePath, tvPath, javPath)
 	if err != nil {
 		return err
 	}
@@ -42,7 +42,7 @@ func doWork() error {
 	go func() {
 		defer wg.Done()
 		defer log.Printf("stopped\n")
-		err = core.Run(done, dirPath)
+		err = core.Run(done, motherPath)
 		if err != nil {
 			log.Printf("run err:%s\n", err.Error())
 		}
