@@ -13,7 +13,7 @@ import (
 const (
 	fcIDGroupName = "fcid"
 
-	fileNameRegexStr = `.*FC2-PPV-(?P<fcid>\d+).*`
+	fileNameRegexStr = `.*(FC2-PPV|FC2PPV)-(?P<fcid>\d+).*`
 
 	minMediaSize = 300 * 1024 * 1024
 )
