@@ -2,7 +2,4 @@ module asmediamgr
 
 go 1.18
 
-require (
-	github.com/pelletier/go-toml v1.9.5
-	golang.org/x/net v0.18.0
-)
+require golang.org/x/exp v0.0.0-20231206192017-f3f8817b8deb

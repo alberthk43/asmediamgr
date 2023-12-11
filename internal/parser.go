@@ -8,8 +8,8 @@ import (
 )
 
 func PrepareLog() error {
-	loggerStd := slog.NewJSONHandler(os.Stderr, nil)
-	slog.SetDefault(slog.New(loggerStd))
+	tmpLogger := slog.NewJSONHandler(os.Stderr, nil)
+	slog.SetDefault(slog.New(tmpLogger))
 	logFile, err := os.Open(LogPath)
 	if err != nil {
 		logFile, err = os.Create(LogPath)
