@@ -1,17 +1,18 @@
 package parsesvr
 
 import (
+	"asmediamgr/pkg/dirinfo"
 	"asmediamgr/pkg/parser"
 	"asmediamgr/pkg/services/diskop"
 	"asmediamgr/pkg/services/tmdb"
-	"sync"
-	"time"
 
 	"fmt"
 	"log/slog"
 	"os"
 	"path/filepath"
 	"strings"
+	"sync"
+	"time"
 )
 
 func PrintAndDie(msg string) {
@@ -29,6 +30,7 @@ type ParserServer struct {
 	doneCh           <-chan struct{}
 	shutdownComplete chan struct{}
 	wg               sync.WaitGroup
+	parsersInfo      []parserInfo
 }
 
 func NewParserServer(conf *Configuration) (*ParserServer, error) {
@@ -54,6 +56,7 @@ func Run(s *ParserServer) error {
 	if len(parsersInfo) == 0 {
 		return fmt.Errorf("no parsers found")
 	}
+	s.parsersInfo = parsersInfo
 	s.runMotherDirs()
 	return nil
 }
@@ -72,13 +75,22 @@ func (s *ParserServer) runMotherDir(motherDir MontherDir) {
 	for {
 		select {
 		case <-s.doneCh:
-			// TODO pass doneCh inside each loop
 			return
 		default:
-			slog.Info("mother dir new loop start", slog.String("dir_path", motherDir.DirPath))
+			slog.Info("mother dir run", slog.String("dir_path", motherDir.DirPath))
+			s.runWithMotherDir(motherDir)
 			time.Sleep(motherDir.SleepInterval)
 		}
 	}
+}
+
+func (s *ParserServer) runWithMotherDir(motherDir MontherDir) {
+	entries, err := dirinfo.ScanMotherDir(motherDir.DirPath)
+	if err != nil {
+		slog.Error("failed to scan mother dir", slog.String("dir_path", motherDir.DirPath), slog.String("err", err.Error()))
+		return
+	}
+	_ = entries
 }
 
 func (s *ParserServer) initServices() (*namedServices, error) {
@@ -141,7 +153,7 @@ func (s *ParserServer) initParsers(namedServices *namedServices) ([]parserInfo, 
 			return nil, fmt.Errorf("invalid parser config file name: %s", sub.Name())
 		}
 		parserConfPath := filepath.Join(s.conf.ParserConfDir, sub.Name())
-		parser, err := genFn(parserConfPath, &parser.NamedServices{
+		parser, err := genFn(parserConfPath, &parser.CommonServices{
 			Tmdb:   namedServices.tmdb,
 			DiskOp: namedServices.diskOp,
 		}, nil)

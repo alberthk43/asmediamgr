@@ -18,7 +18,7 @@ func (p *TvEpParser) Parse(entry *dirinfo.Entry) error {
 	return nil
 }
 
-func gen(configPath string, namedServices *parser.NamedServices, services service.ServiceMap) (parser.Parser, error) {
+func gen(configPath string, namedServices *parser.CommonServices, services service.ServiceMap) (parser.Parser, error) {
 	parser := &TvEpParser{}
 	return parser, nil
 }

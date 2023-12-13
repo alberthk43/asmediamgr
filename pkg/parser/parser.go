@@ -18,12 +18,12 @@ type TmdbService interface {
 type DiskOpService interface {
 }
 
-type NamedServices struct {
+type CommonServices struct {
 	Tmdb   TmdbService
 	DiskOp DiskOpService
 }
 
-type ParserGenFn func(configPath string, namedServices *NamedServices, services service.ServiceMap) (Parser, error)
+type ParserGenFn func(configPath string, namedServices *CommonServices, services service.ServiceMap) (Parser, error)
 
 func RegisterParserFn(name string, genFn ParserGenFn) {
 	if genFn == nil {
