@@ -4,12 +4,12 @@ import (
 	"asmediamgr/pkg/parser"
 	"asmediamgr/pkg/services/diskop"
 	"asmediamgr/pkg/services/tmdb"
+
 	"fmt"
+	"log/slog"
 	"os"
 	"path/filepath"
 	"strings"
-
-	"golang.org/x/exp/slog"
 )
 
 type Server struct {
@@ -19,11 +19,15 @@ type Server struct {
 
 func NewServer(conf *Configuration) (*Server, error) {
 	return &Server{
-		conf: conf,
+		conf:             conf,
+		shutdownComplete: make(chan struct{}),
 	}, nil
 }
 
 func Run(s *Server) error {
+	if len(s.conf.MotherDirs) == 0 {
+		return fmt.Errorf("no mother dirs found")
+	}
 	namedServices, err := s.initServices()
 	if err != nil {
 		return fmt.Errorf("failed to initialize services: %v", err)
