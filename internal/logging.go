@@ -32,6 +32,6 @@ func PrepareLog(mainFilePath string) error {
 	}
 	loggerMw := slog.NewJSONHandler(mw, &slog.HandlerOptions{AddSource: true, ReplaceAttr: replace})
 	slog.SetDefault(slog.New(loggerMw))
-	slog.Info("logging initialized")
+	slog.Info("Logging initialized")
 	return nil
 }

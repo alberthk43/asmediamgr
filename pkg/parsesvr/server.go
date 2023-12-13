@@ -1,9 +1,11 @@
-package server
+package parsesvr
 
 import (
 	"asmediamgr/pkg/parser"
 	"asmediamgr/pkg/services/diskop"
 	"asmediamgr/pkg/services/tmdb"
+	"sync"
+	"time"
 
 	"fmt"
 	"log/slog"
@@ -12,19 +14,32 @@ import (
 	"strings"
 )
 
-type Server struct {
-	conf             *Configuration
-	shutdownComplete chan struct{}
+func PrintAndDie(msg string) {
+	slog.Error(msg)
+	os.Exit(1)
 }
 
-func NewServer(conf *Configuration) (*Server, error) {
-	return &Server{
+type namedServices struct {
+	tmdb   *tmdb.TmdbService
+	diskOp *diskop.DiskOpService
+}
+
+type ParserServer struct {
+	conf             *Configuration
+	doneCh           <-chan struct{}
+	shutdownComplete chan struct{}
+	wg               sync.WaitGroup
+}
+
+func NewParserServer(conf *Configuration) (*ParserServer, error) {
+	return &ParserServer{
 		conf:             conf,
+		doneCh:           make(chan struct{}),
 		shutdownComplete: make(chan struct{}),
 	}, nil
 }
 
-func Run(s *Server) error {
+func Run(s *ParserServer) error {
 	if len(s.conf.MotherDirs) == 0 {
 		return fmt.Errorf("no mother dirs found")
 	}
@@ -39,20 +54,34 @@ func Run(s *Server) error {
 	if len(parsersInfo) == 0 {
 		return fmt.Errorf("no parsers found")
 	}
+	s.runMotherDirs()
 	return nil
 }
 
-func PrintAndDie(msg string) {
-	slog.Error(msg)
-	os.Exit(1)
+func (s *ParserServer) runMotherDirs() {
+	for _, motherDir := range s.conf.MotherDirs {
+		go s.runMotherDir(motherDir)
+	}
 }
 
-type namedServices struct {
-	tmdb   *tmdb.TmdbService
-	diskOp *diskop.DiskOpService
+func (s *ParserServer) runMotherDir(motherDir MontherDir) {
+	s.wg.Add(1)
+	defer s.wg.Done()
+	defer slog.Info("end mother dir loop", slog.String("dir_path", motherDir.DirPath))
+	slog.Info("start mother dir loop", slog.String("dir_path", motherDir.DirPath))
+	for {
+		select {
+		case <-s.doneCh:
+			// TODO pass doneCh inside each loop
+			return
+		default:
+			slog.Info("mother dir new loop start", slog.String("dir_path", motherDir.DirPath))
+			time.Sleep(motherDir.SleepInterval)
+		}
+	}
 }
 
-func (s *Server) initServices() (*namedServices, error) {
+func (s *ParserServer) initServices() (*namedServices, error) {
 	tmdb, err := tmdb.NewTmdbService(filepath.Join(s.conf.ServiceConfDir, "tmdb.toml"))
 	if err != nil {
 		return nil, fmt.Errorf("failed to initialize tmdb service: %v", err)
@@ -81,7 +110,7 @@ type parserInfo struct {
 	priority int
 }
 
-func (s *Server) initParsers(namedServices *namedServices) ([]parserInfo, error) {
+func (s *ParserServer) initParsers(namedServices *namedServices) ([]parserInfo, error) {
 	dir, err := os.Open(s.conf.ParserConfDir)
 	if err != nil {
 		return nil, fmt.Errorf("failed to open parser config directory: %v", err)
@@ -125,10 +154,11 @@ func (s *Server) initParsers(namedServices *namedServices) ([]parserInfo, error)
 			parser:   parser,
 			priority: parser.Priority(),
 		})
+		slog.Info("add parsers", slog.String("name", parserName))
 	}
 	return parsersInfo, nil
 }
 
-func (s *Server) WaitForShutdown() {
+func (s *ParserServer) WaitForShutdown() {
 	<-s.shutdownComplete
 }

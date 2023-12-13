@@ -2,10 +2,11 @@ package main
 
 import (
 	asmediamgr "asmediamgr/internal"
-	"asmediamgr/pkg/server"
+	_ "asmediamgr/internal/builtin"
+	"asmediamgr/pkg/parsesvr"
+
 	"flag"
 	"fmt"
-
 	"log/slog"
 	"os"
 )
@@ -20,17 +21,17 @@ func main() {
 		slog.Error("Failed to prepare logging: %s", err)
 		os.Exit(1)
 	}
-	c, err := server.LoadConfigurationFromFile(asmediamgr.Config)
+	c, err := parsesvr.LoadConfigurationFromFile(asmediamgr.Config)
 	if err != nil {
-		server.PrintAndDie(fmt.Sprintf("Failed to load config: %v", err))
+		parsesvr.PrintAndDie(fmt.Sprintf("Failed to load config: %v", err))
 	}
-	s, err := server.NewServer(c)
+	s, err := parsesvr.NewParserServer(c)
 	if err != nil {
-		server.PrintAndDie(fmt.Sprintf("Failed to initialize server: %v", err))
+		parsesvr.PrintAndDie(fmt.Sprintf("Failed to initialize server: %v", err))
 	}
-	err = server.Run(s)
+	err = parsesvr.Run(s)
 	if err != nil {
-		server.PrintAndDie(fmt.Sprintf("Failed to run server: %v", err))
+		parsesvr.PrintAndDie(fmt.Sprintf("Failed to run server: %v", err))
 	}
 	s.WaitForShutdown()
 }
