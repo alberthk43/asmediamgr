@@ -38,7 +38,7 @@ func TestScanMotherDir(t *testing.T) {
 					RelPathToMother: "entry2/sub/file22.txt",
 					Name:            "file22.txt",
 					Ext:             ".txt",
-					BytesNum:        574,
+					BytesNum:        file22BytesNum,
 				},
 			},
 		},
