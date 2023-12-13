@@ -10,11 +10,7 @@ import (
 	"strings"
 )
 
-const (
-	mainFilePath = "/cmd/parser/main.go"
-)
-
-func PrepareLog() error {
+func PrepareLog(mainFilePath string) error {
 	appName := "parser"
 	logName := appName + ".log"
 	logFile, err := os.OpenFile(logName, os.O_RDWR|os.O_CREATE|os.O_APPEND, 0666)

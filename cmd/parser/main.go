@@ -8,8 +8,12 @@ import (
 	"os"
 )
 
+const (
+	mainFilePath = "/cmd/parser/main.go"
+)
+
 func main() {
-	if err := asmediamgr.PrepareLog(); err != nil {
+	if err := asmediamgr.PrepareLog(mainFilePath); err != nil {
 		slog.Error("Failed to prepare logging: %s", err)
 		os.Exit(1)
 	}
