@@ -22,11 +22,9 @@ func PrepareLog(mainFilePath string) error {
 	basePath := strings.TrimSuffix(filename, mainFilePath)
 	replace := func(groups []string, a slog.Attr) slog.Attr {
 		if a.Key == slog.SourceKey {
-			source := a.Value.Any().(*slog.Source)
-			if source != nil {
-				relPath, err := filepath.Rel(basePath, source.File)
-				if err == nil {
-					source.File = relPath
+			if source := a.Value.Any().(*slog.Source); source != nil {
+				if relPath, err := filepath.Rel(basePath, source.File); err == nil {
+					source.File = filepath.ToSlash(relPath)
 				}
 			}
 		}
