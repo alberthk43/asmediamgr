@@ -3,7 +3,6 @@ package main
 import (
 	asmediamgr "asmediamgr/internal"
 	"asmediamgr/pkg/server"
-	"time"
 
 	"log/slog"
 	"os"
@@ -23,6 +22,4 @@ func main() {
 		server.PrintAndDie(err.Error())
 	}
 	s.WaitForShutdown()
-	asmediamgr.WaitLogFileAllWritten()
-	time.Sleep(10 * time.Second)
 }

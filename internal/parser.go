@@ -8,10 +8,6 @@ import (
 	"path/filepath"
 )
 
-var (
-	logFile *os.File
-)
-
 func PrepareLog() error {
 	appName := "parser"
 	logName := appName + ".log"
@@ -19,7 +15,6 @@ func PrepareLog() error {
 	if err != nil {
 		return fmt.Errorf("failed to open log file: %v", err)
 	}
-	logFile = f
 	mw := io.MultiWriter(os.Stderr, f)
 	basePath := "C:/Users/caskeep/mycode/project/2023Q4/asmediamgr"
 	replace := func(groups []string, a slog.Attr) slog.Attr {
@@ -38,9 +33,4 @@ func PrepareLog() error {
 	slog.SetDefault(slog.New(loggerMw))
 	slog.Info("logging initialized")
 	return nil
-}
-
-func WaitLogFileAllWritten() {
-	logFile.Sync()
-	logFile.Close()
 }
