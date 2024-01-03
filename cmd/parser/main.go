@@ -3,6 +3,7 @@ package main
 import (
 	asmediamgr "asmediamgr/internal"
 	_ "asmediamgr/internal/builtin"
+	"asmediamgr/pkg/config"
 	"asmediamgr/pkg/parsesvr"
 
 	"flag"
@@ -21,7 +22,7 @@ func main() {
 		slog.Error("Failed to prepare logging: %s", err)
 		os.Exit(1)
 	}
-	c, err := parsesvr.LoadConfigurationFromFile(asmediamgr.Config)
+	c, err := config.LoadConfigurationFromFile(asmediamgr.Config)
 	if err != nil {
 		parsesvr.PrintAndDie(fmt.Sprintf("Failed to load config: %v", err))
 	}

@@ -1,4 +1,4 @@
-package parsesvr
+package config
 
 import (
 	"time"
@@ -12,9 +12,12 @@ type MontherDir struct {
 }
 
 type Configuration struct {
-	ServiceConfDir string       `toml:"service_conf_dir"`
-	ParserConfDir  string       `toml:"parser_conf_dir"`
-	MotherDirs     []MontherDir `toml:"mother_dirs"`
+	ServiceConfDir    string       `toml:"service_conf_dir"`
+	ParserConfDir     string       `toml:"parser_conf_dir"`
+	TmdbSock5Proxy    string       `toml:"tmdb_sock5_proxy"`
+	DestTvOnAirDir    string       `toml:"dest_tv_on_air_dir"`
+	DestMovieOnAirDir string       `toml:"dest_movie_on_air_dir"`
+	MotherDirs        []MontherDir `toml:"mother_dirs"`
 }
 
 func LoadConfigurationFromFile(file string) (*Configuration, error) {

@@ -2,9 +2,12 @@ package parser
 
 import (
 	"asmediamgr/pkg/dirinfo"
+	"asmediamgr/pkg/diskop"
 	"asmediamgr/pkg/service"
 
 	"sync"
+
+	tmdb "github.com/cyruzin/golang-tmdb"
 )
 
 var (
@@ -12,10 +15,16 @@ var (
 	ParserGenFnMap   = make(map[string]ParserGenFn)
 )
 
+// TmdbService is a service that can search tmdb
 type TmdbService interface {
+	// GetSearchMovies(query string, urlOptions map[string]string) (*tmdb.SearchMovies, error)
+	GetSearchTVShow(query string, urlOptions map[string]string) (*tmdb.SearchTVShows, error)
+	GetTVDetails(id int, urlOptions map[string]string) (*tmdb.TVDetails, error)
 }
 
+// DiskOpService is a service that can rename files
 type DiskOpService interface {
+	RenameSingleTvEpFile(entry *dirinfo.Entry, old *dirinfo.File, tvDetail *tmdb.TVDetails, season int, episode int, destType diskop.DestType) error
 }
 
 type CommonServices struct {

@@ -1,4 +1,4 @@
-package parsesvr
+package config
 
 import (
 	"testing"
@@ -15,8 +15,10 @@ func TestLoadConfiguration(t *testing.T) {
 		t.Fatalf("failed to load config: %v", err)
 	}
 	expect := &Configuration{
-		ServiceConfDir: "path/to/serviceconf",
-		ParserConfDir:  "path/to/parserconf",
+		ServiceConfDir:    "path/to/serviceconf",
+		ParserConfDir:     "path/to/parserconf",
+		DestTvOnAirDir:    "path/to/dest/onairtv",
+		DestMovieOnAirDir: "path/to/dest/onairmovie",
 		MotherDirs: []MontherDir{
 			{
 				DirPath:       "path/to/motherdir1",
@@ -27,6 +29,7 @@ func TestLoadConfiguration(t *testing.T) {
 				SleepInterval: time.Duration(9)*time.Minute + time.Duration(13)*time.Second,
 			},
 		},
+		TmdbSock5Proxy: "localhost:11000",
 	}
 	testConfigurationSame(t, expect, c)
 }
@@ -48,5 +51,8 @@ func testConfigurationSame(t testing.TB, expect, real *Configuration) {
 		if expect.MotherDirs[i].SleepInterval != real.MotherDirs[i].SleepInterval {
 			t.Errorf("MotherDirs[%d].SleepInterval: expected %s, got %s", i, expect.MotherDirs[i].SleepInterval, real.MotherDirs[i].SleepInterval)
 		}
+	}
+	if expect.TmdbSock5Proxy != real.TmdbSock5Proxy {
+		t.Errorf("TmdbSock5Proxy: expected %s, got %s", expect.TmdbSock5Proxy, real.TmdbSock5Proxy)
 	}
 }

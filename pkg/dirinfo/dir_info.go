@@ -21,8 +21,9 @@ const (
 )
 
 type Entry struct {
-	Type     EntryType
-	FileList []*File
+	Type       EntryType
+	MotherPath string
+	FileList   []*File
 }
 
 func ScanMotherDir(motherPath string) ([]*Entry, error) {
@@ -49,7 +50,7 @@ func ScanMotherDir(motherPath string) ([]*Entry, error) {
 		if sub.IsDir() {
 			entry, err = dirEntry(sub, motherPath)
 		} else {
-			entry, err = fileEntry(sub)
+			entry, err = fileEntry(sub, motherPath)
 		}
 		if err != nil {
 			return nil, fmt.Errorf("failed to scan entryDir: %v", err)
@@ -59,7 +60,7 @@ func ScanMotherDir(motherPath string) ([]*Entry, error) {
 	return entries, nil
 }
 
-func fileEntry(sub fs.DirEntry) (*Entry, error) {
+func fileEntry(sub fs.DirEntry, motherPath string) (*Entry, error) {
 	if sub.IsDir() {
 		panic("sub is not a file")
 	}
@@ -68,7 +69,8 @@ func fileEntry(sub fs.DirEntry) (*Entry, error) {
 		return nil, fmt.Errorf("failed to get sub info: %v", err)
 	}
 	e := &Entry{
-		Type: FileEntry,
+		Type:       FileEntry,
+		MotherPath: motherPath,
 		FileList: []*File{
 			{
 				RelPathToMother: "",
@@ -86,7 +88,8 @@ func dirEntry(sub fs.DirEntry, motherPath string) (*Entry, error) {
 		panic("sub is not a dir")
 	}
 	e := &Entry{
-		Type: DirEntry,
+		Type:       DirEntry,
+		MotherPath: motherPath,
 	}
 	filepath.WalkDir(filepath.Join(motherPath, sub.Name()), func(path string, d fs.DirEntry, err error) error {
 		if err != nil {

@@ -1,5 +1,8 @@
 service_conf_dir = "path/to/serviceconf"
 parser_conf_dir = "path/to/parserconf"
+tmdb_sock5_proxy = "localhost:11000"
+dest_tv_on_air_dir = "path/to/dest/onairtv"
+dest_movie_on_air_dir = "path/to/dest/onairmovie"
 
 [[mother_dirs]]
 dir_path = "path/to/motherdir1"
@@ -8,3 +11,4 @@ sleep_interval = "1h"
 [[mother_dirs]]
 dir_path = "path/to/motherdir2"
 sleep_interval = "9m13s"
+

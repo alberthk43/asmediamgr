@@ -2,5 +2,5 @@ package builtin
 
 import (
 	// parsers
-	_ "asmediamgr/pkg/parsers/tvepfile"
+	_ "asmediamgr/pkg/parsers/aniteam"
 )
