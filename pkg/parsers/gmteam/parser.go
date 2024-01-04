@@ -1,13 +1,14 @@
 package gmteam
 
 import (
-	"asmediamgr/pkg/dirinfo"
-	"asmediamgr/pkg/diskop"
-	"asmediamgr/pkg/parser"
 	"fmt"
 	"log/slog"
 	"regexp"
 	"strconv"
+
+	"asmediamgr/pkg/dirinfo"
+	"asmediamgr/pkg/diskop"
+	"asmediamgr/pkg/parser"
 )
 
 type GmTeamParser struct {

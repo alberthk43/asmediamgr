@@ -1,11 +1,12 @@
 package fakes
 
 import (
-	"asmediamgr/pkg/dirinfo"
-	"asmediamgr/pkg/diskop"
 	"fmt"
 
 	tmdb "github.com/cyruzin/golang-tmdb"
+
+	"asmediamgr/pkg/dirinfo"
+	"asmediamgr/pkg/diskop"
 )
 
 type FakeDiskOpService struct {

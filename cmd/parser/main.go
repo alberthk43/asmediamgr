@@ -1,15 +1,15 @@
 package main
 
 import (
-	asmediamgr "asmediamgr/internal"
-	_ "asmediamgr/internal/builtin"
-	"asmediamgr/pkg/config"
-	"asmediamgr/pkg/parsesvr"
-
 	"flag"
 	"fmt"
 	"log/slog"
 	"os"
+
+	asmediamgr "asmediamgr/internal"
+	_ "asmediamgr/internal/builtin"
+	"asmediamgr/pkg/config"
+	"asmediamgr/pkg/parsesvr"
 )
 
 const (

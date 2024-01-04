@@ -3,11 +3,11 @@ package tvepfile
 import (
 	"testing"
 
+	tmdb "github.com/cyruzin/golang-tmdb"
+
 	"asmediamgr/pkg/dirinfo"
 	"asmediamgr/pkg/diskop"
 	"asmediamgr/pkg/parsers/fakes"
-
-	tmdb "github.com/cyruzin/golang-tmdb"
 )
 
 var (

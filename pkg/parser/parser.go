@@ -1,13 +1,13 @@
 package parser
 
 import (
-	"asmediamgr/pkg/dirinfo"
-	"asmediamgr/pkg/diskop"
-	"asmediamgr/pkg/service"
-
 	"sync"
 
 	tmdb "github.com/cyruzin/golang-tmdb"
+
+	"asmediamgr/pkg/dirinfo"
+	"asmediamgr/pkg/diskop"
+	"asmediamgr/pkg/service"
 )
 
 var (

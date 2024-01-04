@@ -1,14 +1,15 @@
 package tvepfile
 
 import (
-	"asmediamgr/pkg/dirinfo"
-	"asmediamgr/pkg/diskop"
-	"asmediamgr/pkg/parser"
 	"fmt"
 	"log/slog"
 	"regexp"
 	"strconv"
 	"strings"
+
+	"asmediamgr/pkg/dirinfo"
+	"asmediamgr/pkg/diskop"
+	"asmediamgr/pkg/parser"
 )
 
 type TvEpParser struct {

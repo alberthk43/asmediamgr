@@ -1,12 +1,13 @@
 package gmteam
 
 import (
-	"asmediamgr/pkg/dirinfo"
-	"asmediamgr/pkg/diskop"
-	"asmediamgr/pkg/parsers/fakes"
 	"testing"
 
 	tmdb "github.com/cyruzin/golang-tmdb"
+
+	"asmediamgr/pkg/dirinfo"
+	"asmediamgr/pkg/diskop"
+	"asmediamgr/pkg/parsers/fakes"
 )
 
 var (
