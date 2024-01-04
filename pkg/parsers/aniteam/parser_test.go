@@ -226,3 +226,33 @@ func TestWithUselessRegionRestrictAnotherOrder(t *testing.T) {
 		t.Fatal(err)
 	}
 }
+
+func TestWithExplictedSeasonEpisodeNum(t *testing.T) {
+	entry := &dirinfo.Entry{
+		Type: dirinfo.FileEntry,
+		FileList: []*dirinfo.File{
+			{
+				RelPathToMother: "",
+				Name:            "[ANi] Some Name [年齡限制版]（僅限港澳台地區）第九季 - 56 [1080P][Baha][WEB-DL][AAC AVC][CHT] S04E09.mp4",
+				Ext:             ".mp4",
+				BytesNum:        888888,
+			},
+		},
+	}
+	parser := &TvEpParser{
+		tmdbService: fakeTmdbService,
+		distOpService: fakes.NewFakeDiskOpService(
+			fakes.WithRenameSingleTvEpFile(
+				entry,
+				entry.FileList[0],
+				tvDetail,
+				4,
+				9,
+				diskop.OnAirTv,
+			)),
+	}
+	err := parser.Parse(entry)
+	if err != nil {
+		t.Fatal(err)
+	}
+}

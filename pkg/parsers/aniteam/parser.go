@@ -66,6 +66,12 @@ func (p *TvEpParser) Parse(entry *dirinfo.Entry) error {
 	seasonnum = resultInfo.seasonnum
 	name = resultInfo.name
 
+	// try match explicited season and episode number, S01E02 like
+	if n1, n2, err := regexMatchSeasonEp(file); err == nil {
+		seasonnum = n1
+		epnum = n2
+	}
+
 	// if tmdbid<=0, search by name first, then check results only one
 	if tmdbid <= 0 {
 		tvSearchResults, err := p.tmdbService.GetSearchTVShow(name, defaultUrlOptions)
@@ -99,6 +105,26 @@ func (p *TvEpParser) Parse(entry *dirinfo.Entry) error {
 	}
 
 	return nil
+}
+
+var (
+	seasonEpNumRegexp = regexp.MustCompile(`S(?P<season>\d+)E(?P<episode>\d+)`)
+)
+
+func regexMatchSeasonEp(file *dirinfo.File) (int, int, error) {
+	match := seasonEpNumRegexp.FindStringSubmatch(file.Name)
+	if len(match) != 3 {
+		return 0, 0, fmt.Errorf("failed to match regex")
+	}
+	season, err := strconv.ParseInt(match[1], 10, 31)
+	if err != nil {
+		return 0, 0, fmt.Errorf("failed to convert season to int64")
+	}
+	episode, err := strconv.ParseInt(match[2], 10, 31)
+	if err != nil {
+		return 0, 0, fmt.Errorf("failed to convert episode to int64")
+	}
+	return int(season), int(episode), nil
 }
 
 var (
