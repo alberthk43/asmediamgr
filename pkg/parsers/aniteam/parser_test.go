@@ -11,8 +11,22 @@ import (
 )
 
 var (
+	emptyConfig           = &Configuration{}
+	withPredefindedConfig = &Configuration{
+		Predefined: []Predefined{
+			{
+				Name:      "Predefined Name",
+				TmdbId:    123456789,
+				SeasonNum: 88,
+			},
+		},
+	}
+)
+
+var (
 	tvDetail = &tmdb.TVDetails{
 		FirstAirDate: "2020-05-07",
+		ID:           123456789,
 	}
 	fakeTmdbService = fakes.NewFakeTmdbService(
 		fakes.WithQueryMapping("Some Name", &tmdb.SearchTVShows{
@@ -60,6 +74,7 @@ func TestNormalSuccEntry(t *testing.T) {
 		},
 	}
 	parser := &TvEpParser{
+		c:           emptyConfig,
 		tmdbService: fakeTmdbService,
 		distOpService: fakes.NewFakeDiskOpService(
 			fakes.WithRenameSingleTvEpFile(
@@ -90,6 +105,7 @@ func TestExplictTmdbId(t *testing.T) {
 		},
 	}
 	parser := &TvEpParser{
+		c:           emptyConfig,
 		tmdbService: fakeTmdbService,
 		distOpService: fakes.NewFakeDiskOpService(
 			fakes.WithRenameSingleTvEpFile(
@@ -120,6 +136,7 @@ func TestWithChineaseSeasonInfo(t *testing.T) {
 		},
 	}
 	parser := &TvEpParser{
+		c:           emptyConfig,
 		tmdbService: fakeTmdbService,
 		distOpService: fakes.NewFakeDiskOpService(
 			fakes.WithRenameSingleTvEpFile(
@@ -150,6 +167,7 @@ func TestWithUselessAgeRestrict(t *testing.T) {
 		},
 	}
 	parser := &TvEpParser{
+		c:           emptyConfig,
 		tmdbService: fakeTmdbService,
 		distOpService: fakes.NewFakeDiskOpService(
 			fakes.WithRenameSingleTvEpFile(
@@ -180,6 +198,7 @@ func TestWithUselessRegionRestrict(t *testing.T) {
 		},
 	}
 	parser := &TvEpParser{
+		c:           emptyConfig,
 		tmdbService: fakeTmdbService,
 		distOpService: fakes.NewFakeDiskOpService(
 			fakes.WithRenameSingleTvEpFile(
@@ -210,6 +229,7 @@ func TestWithUselessRegionRestrictAnotherOrder(t *testing.T) {
 		},
 	}
 	parser := &TvEpParser{
+		c:           emptyConfig,
 		tmdbService: fakeTmdbService,
 		distOpService: fakes.NewFakeDiskOpService(
 			fakes.WithRenameSingleTvEpFile(
@@ -240,6 +260,7 @@ func TestWithExplictedSeasonEpisodeNum(t *testing.T) {
 		},
 	}
 	parser := &TvEpParser{
+		c:           emptyConfig,
 		tmdbService: fakeTmdbService,
 		distOpService: fakes.NewFakeDiskOpService(
 			fakes.WithRenameSingleTvEpFile(
@@ -248,6 +269,37 @@ func TestWithExplictedSeasonEpisodeNum(t *testing.T) {
 				tvDetail,
 				4,
 				9,
+				diskop.OnAirTv,
+			)),
+	}
+	err := parser.Parse(entry)
+	if err != nil {
+		t.Fatal(err)
+	}
+}
+
+func TestWithPredefined(t *testing.T) {
+	entry := &dirinfo.Entry{
+		Type: dirinfo.FileEntry,
+		FileList: []*dirinfo.File{
+			{
+				RelPathToMother: "",
+				Name:            "[ANi] Predefined Name - 56 [1080P][Baha][WEB-DL][AAC AVC][CHT].mp4",
+				Ext:             ".mp4",
+				BytesNum:        888888,
+			},
+		},
+	}
+	parser := &TvEpParser{
+		c:           withPredefindedConfig,
+		tmdbService: fakeTmdbService,
+		distOpService: fakes.NewFakeDiskOpService(
+			fakes.WithRenameSingleTvEpFile(
+				entry,
+				entry.FileList[0],
+				tvDetail,
+				88,
+				56,
 				diskop.OnAirTv,
 			)),
 	}

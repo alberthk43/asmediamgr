@@ -80,7 +80,7 @@ func parseYearFromAirDate(airDate string) (int, error) {
 }
 
 func tvSeasonDirName(tvDetail *tmdb.TVDetails, season int) string {
-	return fmt.Sprintf("Season %02d", season)
+	return fmt.Sprintf("Season %d", season)
 }
 
 func tvEpFileName(old *dirinfo.File, tvDetail *tmdb.TVDetails, season int, episode int) string {

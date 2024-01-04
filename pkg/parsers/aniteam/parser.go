@@ -15,6 +15,7 @@ type TvEpParser struct {
 	parser.DefaultPriority
 	tmdbService   parser.TmdbService
 	distOpService parser.DiskOpService
+	c             *Configuration
 }
 
 var (
@@ -43,8 +44,6 @@ func (p *TvEpParser) Parse(entry *dirinfo.Entry) error {
 	epnum := int(-1)
 	seasonnum := int(-1)
 
-	// TODO try match predefined patterns
-
 	// try match with tmdbid pattern
 	tmpTmdbid, err := regexMatchTmdbid(file)
 	if err == nil {
@@ -58,13 +57,25 @@ func (p *TvEpParser) Parse(entry *dirinfo.Entry) error {
 	}
 	epnum = rawInfo.epnum
 
-	// process raw parsed name from filename, remove some useless info
-	resultInfo, err := processRaw(rawInfo)
-	if err != nil {
-		return fmt.Errorf("failed to process raw: %v", err)
+	// try match predefined patterns
+	isPreMatched := false
+	for _, predefined := range p.c.Predefined {
+		if rawInfo.raw == predefined.Name {
+			tmdbid = predefined.TmdbId
+			seasonnum = predefined.SeasonNum
+			isPreMatched = true
+		}
 	}
-	seasonnum = resultInfo.seasonnum
-	name = resultInfo.name
+
+	// process raw parsed name from filename, remove some useless info
+	if !isPreMatched {
+		resultInfo, err := processRaw(rawInfo)
+		if err != nil {
+			return fmt.Errorf("failed to process raw: %v", err)
+		}
+		seasonnum = resultInfo.seasonnum
+		name = resultInfo.name
+	}
 
 	// try match explicited season and episode number, S01E02 like
 	if n1, n2, err := regexMatchSeasonEp(file); err == nil {
