@@ -5,6 +5,7 @@ import (
 	"log/slog"
 	"os"
 	"path/filepath"
+	"regexp"
 	"time"
 
 	tmdb "github.com/cyruzin/golang-tmdb"
@@ -68,7 +69,8 @@ func tvDirName(tvDetail *tmdb.TVDetails) (string, error) {
 	if err != nil {
 		return "", err
 	}
-	return fmt.Sprintf("%s (%d) [tmdbid-%d]", tvDetail.OriginalName, year, tvDetail.ID), nil
+	originalName := MakeFilenameWindowsFriendly(tvDetail.OriginalName)
+	return fmt.Sprintf("%s (%d) [tmdbid-%d]", originalName, year, tvDetail.ID), nil
 }
 
 func parseYearFromAirDate(airDate string) (int, error) {
@@ -85,6 +87,13 @@ func tvSeasonDirName(tvDetail *tmdb.TVDetails, season int) string {
 
 func tvEpFileName(old *dirinfo.File, tvDetail *tmdb.TVDetails, season int, episode int) string {
 	return fmt.Sprintf("S%02dE%02d%s", season, episode, old.Ext)
+}
+
+var namingRegexp = regexp.MustCompile(`\\\\|/|:|\\*|\\?|<|>`)
+
+// MakeFilenameWindowsFriendly removes characters not permitted in file/directory names on Windows
+func MakeFilenameWindowsFriendly(name string) string {
+	return namingRegexp.ReplaceAllString(name, "")
 }
 
 func (dop *DiskOpService) RenameSingleMovieFile(entry *dirinfo.Entry, old *dirinfo.File,
@@ -129,7 +138,8 @@ func movieDirName(movieDetail *tmdb.MovieDetails) (string, error) {
 	if err != nil {
 		return "", err
 	}
-	return fmt.Sprintf("%s (%d) [tmdbid-%d]", movieDetail.OriginalTitle, year, movieDetail.ID), nil
+	originalTitle := MakeFilenameWindowsFriendly(movieDetail.OriginalTitle)
+	return fmt.Sprintf("%s (%d) [tmdbid-%d]", originalTitle, year, movieDetail.ID), nil
 }
 
 func movieFileName(old *dirinfo.File, movieDetail *tmdb.MovieDetails) (string, error) {
@@ -137,5 +147,6 @@ func movieFileName(old *dirinfo.File, movieDetail *tmdb.MovieDetails) (string, e
 	if err != nil {
 		return "", err
 	}
-	return fmt.Sprintf("%s (%d) [tmdbid-%d]%s", movieDetail.OriginalTitle, year, movieDetail.ID, old.Ext), nil
+	originalTitle := MakeFilenameWindowsFriendly(movieDetail.OriginalTitle)
+	return fmt.Sprintf("%s (%d) [tmdbid-%d]%s", originalTitle, year, movieDetail.ID, old.Ext), nil
 }
