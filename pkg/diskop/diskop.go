@@ -59,7 +59,7 @@ func (dop *DiskOpService) RenameSingleTvEpFile(entry *dirinfo.Entry, old *dirinf
 	if err != nil {
 		return fmt.Errorf("failed to create dir: %v", err)
 	}
-	slog.Info("succ to rename single tv episode file", slog.String("old", oldPath), slog.String("new", newPath), slog.String("dir", allDirPath))
+	slog.Info("succ to rename single tv episode file", slog.String("old", oldPath), slog.String("new", newPath))
 	return nil
 }
 
@@ -85,4 +85,57 @@ func tvSeasonDirName(tvDetail *tmdb.TVDetails, season int) string {
 
 func tvEpFileName(old *dirinfo.File, tvDetail *tmdb.TVDetails, season int, episode int) string {
 	return fmt.Sprintf("S%02dE%02d%s", season, episode, old.Ext)
+}
+
+func (dop *DiskOpService) RenameSingleMovieFile(entry *dirinfo.Entry, old *dirinfo.File,
+	movieDetail *tmdb.MovieDetails, destType DestType) error {
+	oldPath := filepath.Join(entry.MotherPath, old.RelPathToMother, old.Name)
+	movieDir, err := movieDirName(movieDetail)
+	if err != nil {
+		return fmt.Errorf("failed to get movieDirName: %v", err)
+	}
+	movieFileName, err := movieFileName(old, movieDetail)
+	if err != nil {
+		return fmt.Errorf("failed to get movieFileName: %v", err)
+	}
+	destDir, ok := dop.destPathMap[destType]
+	if !ok {
+		return fmt.Errorf("no destPath for destType: %v", destType)
+	}
+	allDirPath := filepath.Join(destDir, movieDir)
+	err = os.MkdirAll(allDirPath, 0755)
+	if err != nil {
+		return fmt.Errorf("failed to create dir: %v", err)
+	}
+	newPath := filepath.Join(destDir, movieDir, movieFileName)
+	newFileStat, err := os.Stat(newPath)
+	if err != nil {
+		if !os.IsNotExist(err) {
+			return fmt.Errorf("failed to stat new file: %v", err)
+		}
+	} else {
+		return fmt.Errorf("new file already exists: %v", newFileStat)
+	}
+	err = os.Rename(oldPath, newPath)
+	if err != nil {
+		return fmt.Errorf("failed to create dir: %v", err)
+	}
+	slog.Info("succ to rename single movie episode file", slog.String("old", oldPath), slog.String("new", newPath))
+	return nil
+}
+
+func movieDirName(movieDetail *tmdb.MovieDetails) (string, error) {
+	year, err := parseYearFromAirDate(movieDetail.ReleaseDate)
+	if err != nil {
+		return "", err
+	}
+	return fmt.Sprintf("%s (%d) [tmdbid-%d]", movieDetail.OriginalTitle, year, movieDetail.ID), nil
+}
+
+func movieFileName(old *dirinfo.File, movieDetail *tmdb.MovieDetails) (string, error) {
+	year, err := parseYearFromAirDate(movieDetail.ReleaseDate)
+	if err != nil {
+		return "", err
+	}
+	return fmt.Sprintf("%s (%d) [tmdbid-%d]%s", movieDetail.OriginalTitle, year, movieDetail.ID, old.Ext), nil
 }

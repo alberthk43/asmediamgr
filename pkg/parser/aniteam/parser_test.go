@@ -29,7 +29,7 @@ var (
 		ID:           123456789,
 	}
 	fakeTmdbService = fakes.NewFakeTmdbService(
-		fakes.WithQueryMapping("Some Name", &tmdb.SearchTVShows{
+		fakes.WithTvQueryMapping("Some Name", &tmdb.SearchTVShows{
 			Page:         1,
 			TotalResults: 1,
 			TotalPages:   1,
@@ -56,7 +56,7 @@ var (
 				},
 			},
 		}),
-		fakes.WithIdMapping(123456789, tvDetail),
+		fakes.WithTvIdMapping(123456789, tvDetail),
 	)
 )
 

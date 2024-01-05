@@ -17,7 +17,8 @@ var (
 
 // TmdbService is a service that can search tmdb
 type TmdbService interface {
-	// GetSearchMovies(query string, urlOptions map[string]string) (*tmdb.SearchMovies, error)
+	GetMovieDetails(id int, urlOptions map[string]string) (*tmdb.MovieDetails, error)
+	GetSearchMovies(query string, urlOptions map[string]string) (*tmdb.SearchMovies, error)
 	GetSearchTVShow(query string, urlOptions map[string]string) (*tmdb.SearchTVShows, error)
 	GetTVDetails(id int, urlOptions map[string]string) (*tmdb.TVDetails, error)
 }
@@ -25,6 +26,7 @@ type TmdbService interface {
 // DiskOpService is a service that can rename files
 type DiskOpService interface {
 	RenameSingleTvEpFile(entry *dirinfo.Entry, old *dirinfo.File, tvDetail *tmdb.TVDetails, season int, episode int, destType diskop.DestType) error
+	RenameSingleMovieFile(entry *dirinfo.Entry, old *dirinfo.File, movieDetail *tmdb.MovieDetails, destType diskop.DestType) error
 }
 
 type CommonServices struct {
