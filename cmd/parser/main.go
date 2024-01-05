@@ -9,7 +9,7 @@ import (
 	asmediamgr "asmediamgr/internal"
 	_ "asmediamgr/internal/builtin"
 	"asmediamgr/pkg/config"
-	"asmediamgr/pkg/parsesvr"
+	"asmediamgr/pkg/server"
 )
 
 const (
@@ -24,15 +24,15 @@ func main() {
 	}
 	c, err := config.LoadConfigurationFromFile(asmediamgr.Config)
 	if err != nil {
-		parsesvr.PrintAndDie(fmt.Sprintf("Failed to load config: %v", err))
+		server.PrintAndDie(fmt.Sprintf("Failed to load config: %v", err))
 	}
-	s, err := parsesvr.NewParserServer(c)
+	s, err := server.NewParserServer(c)
 	if err != nil {
-		parsesvr.PrintAndDie(fmt.Sprintf("Failed to initialize server: %v", err))
+		server.PrintAndDie(fmt.Sprintf("Failed to initialize server: %v", err))
 	}
-	err = parsesvr.Run(s)
+	err = server.Run(s)
 	if err != nil {
-		parsesvr.PrintAndDie(fmt.Sprintf("Failed to run server: %v", err))
+		server.PrintAndDie(fmt.Sprintf("Failed to run server: %v", err))
 	}
 	s.WaitForShutdown()
 }

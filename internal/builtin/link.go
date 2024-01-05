@@ -2,6 +2,6 @@ package builtin
 
 import (
 	// parsers
-	_ "asmediamgr/pkg/parsers/aniteam"
-	_ "asmediamgr/pkg/parsers/gmteam"
+	_ "asmediamgr/pkg/parser/aniteam"
+	_ "asmediamgr/pkg/parser/gmteam"
 )

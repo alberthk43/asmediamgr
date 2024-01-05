@@ -1,14 +1,14 @@
-package tvepfile
+package gmteam
 
 import (
 	"github.com/BurntSushi/toml"
 
 	"asmediamgr/pkg/parser"
-	"asmediamgr/pkg/service"
+	"asmediamgr/pkg/servicemgr"
 )
 
 const (
-	templateName = "aniteam"
+	templateName = "gmteam"
 )
 
 type Predefined struct {
@@ -30,12 +30,12 @@ func loadConfiguration(configPath string) (*Configuration, error) {
 	return c, nil
 }
 
-func gen(configPath string, namedServices *parser.CommonServices, services service.ServiceMap) (parser.Parser, error) {
+func gen(configPath string, namedServices *parser.CommonServices, services servicemgr.ServiceMap) (parser.Parser, error) {
 	c, err := loadConfiguration(configPath)
 	if err != nil {
 		return nil, err
 	}
-	parser := &TvEpParser{
+	parser := &GmTeamParser{
 		c:             c,
 		tmdbService:   namedServices.Tmdb,
 		distOpService: namedServices.DiskOp,

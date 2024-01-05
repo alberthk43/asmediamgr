@@ -1,4 +1,4 @@
-package service
+package servicemgr
 
 var (
 	servcieMap ServiceMap

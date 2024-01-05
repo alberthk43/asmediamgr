@@ -1,4 +1,4 @@
-package parsesvr
+package server
 
 import "testing"
 

@@ -7,7 +7,7 @@ import (
 
 	"asmediamgr/pkg/dirinfo"
 	"asmediamgr/pkg/diskop"
-	"asmediamgr/pkg/service"
+	"asmediamgr/pkg/servicemgr"
 )
 
 var (
@@ -32,7 +32,7 @@ type CommonServices struct {
 	DiskOp DiskOpService
 }
 
-type ParserGenFn func(configPath string, namedServices *CommonServices, services service.ServiceMap) (Parser, error)
+type ParserGenFn func(configPath string, namedServices *CommonServices, services servicemgr.ServiceMap) (Parser, error)
 
 func RegisterParserFn(name string, genFn ParserGenFn) {
 	if genFn == nil {

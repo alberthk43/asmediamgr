@@ -1,4 +1,4 @@
-package parsesvr
+package server
 
 import (
 	"fmt"
@@ -82,7 +82,7 @@ func (s *ParserServer) runMotherDir(motherDir config.MontherDir) {
 		case <-s.doneCh:
 			return
 		default:
-			slog.Info("mother dir run", slog.String("dir_path", motherDir.DirPath))
+			slog.Debug("mother dir run", slog.String("dir_path", motherDir.DirPath))
 			s.runWithMotherDir(motherDir, retryConMap)
 			time.Sleep(motherDir.SleepInterval)
 		}
@@ -162,7 +162,7 @@ func (s *ParserServer) runWithEntry(entry *dirinfo.Entry) {
 	name := getEntrySpecificName(entry)
 	for _, parserInfo := range s.parsersInfo {
 		if err := parserInfo.parser.Parse(entry); err != nil {
-			slog.Info("failed to parse entry", slog.String("parser", parserInfo.info()), slog.String("entry", name), slog.String("err", err.Error()))
+			slog.Debug("failed to parse entry", slog.String("parser", parserInfo.info()), slog.String("entry", name), slog.String("err", err.Error()))
 		} else {
 			slog.Info("succ to parse entry", slog.String("parser", parserInfo.info()), slog.String("entry", name))
 			return

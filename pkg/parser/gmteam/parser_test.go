@@ -7,7 +7,7 @@ import (
 
 	"asmediamgr/pkg/dirinfo"
 	"asmediamgr/pkg/diskop"
-	"asmediamgr/pkg/parsers/fakes"
+	"asmediamgr/pkg/parser/fakes"
 )
 
 var (
