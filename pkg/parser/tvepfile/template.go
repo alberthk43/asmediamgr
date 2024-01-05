@@ -1,4 +1,4 @@
-package aniteam
+package tvepfile
 
 import (
 	"github.com/BurntSushi/toml"
@@ -8,13 +8,12 @@ import (
 )
 
 const (
-	templateName = "aniteam"
+	templateName = "tvepfile"
 )
 
 type Predefined struct {
-	Name      string `toml:"name"`
-	TmdbId    int    `toml:"tmdbid"`
-	SeasonNum int    `toml:"season_num"`
+	Name   string `toml:"name"`
+	TmdbId int    `toml:"tmdbid"`
 }
 
 type Configuration struct {
