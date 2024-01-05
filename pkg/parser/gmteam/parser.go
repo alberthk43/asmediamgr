@@ -140,13 +140,17 @@ type rawInfo struct {
 }
 
 var (
-	fileRegexp = regexp.MustCompile(`^\[GM-Team\]\[国漫\]\[(?P<name>.*)\]\[.*\]\[\d{4}\]\[(?P<epnum>\d+)\].*\.mp4$`)
+	fileRegexp            = regexp.MustCompile(`^\[GM-Team\]\[国漫\]\[(?P<name>.*)\]\[.*\]\[\d{4}\]\[(?P<epnum>\d+)\].*\.mp4$`)
+	onlyEnglishNameRegexp = regexp.MustCompile(`^\[GM-Team\]\[国漫\]\[(?P<name>.*)\]\[\d{4}\]\[(?P<epnum>\d+)\].*\.mp4$`)
 )
 
 func regexMatchFileName(file *dirinfo.File) (*rawInfo, error) {
 	match := fileRegexp.FindStringSubmatch(file.Name)
 	if len(match) != 3 {
-		return nil, fmt.Errorf("failed to match regex")
+		match = onlyEnglishNameRegexp.FindStringSubmatch(file.Name)
+		if len(match) != 3 {
+			return nil, fmt.Errorf("failed to match regex")
+		}
 	}
 	n, err := strconv.Atoi(match[2])
 	if err != nil {

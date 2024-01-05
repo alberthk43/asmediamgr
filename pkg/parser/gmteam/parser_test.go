@@ -154,3 +154,34 @@ func TestWithPredefined(t *testing.T) {
 		t.Fatal(err)
 	}
 }
+
+func TestWithOnlyOneName(t *testing.T) {
+	entry := &dirinfo.Entry{
+		Type: dirinfo.FileEntry,
+		FileList: []*dirinfo.File{
+			{
+				RelPathToMother: "",
+				Name:            "[GM-Team][国漫][Some Name][2023][07][AVC][GB][1080P].mp4",
+				Ext:             ".mp4",
+				BytesNum:        888888,
+			},
+		},
+	}
+	parser := &GmTeamParser{
+		c:           withPredefindedConfig,
+		tmdbService: fakeTmdbService,
+		distOpService: fakes.NewFakeDiskOpService(
+			fakes.WithRenameSingleTvEpFile(
+				entry,
+				entry.FileList[0],
+				tvDetail,
+				1,
+				7,
+				diskop.OnAirTv,
+			)),
+	}
+	err := parser.Parse(entry)
+	if err != nil {
+		t.Fatal(err)
+	}
+}
