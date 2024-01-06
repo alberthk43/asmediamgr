@@ -12,7 +12,7 @@ import (
 	"asmediamgr/pkg/parser"
 )
 
-type TvEpParser struct {
+type AniTeamParser struct {
 	parser.DefaultPriority
 	tmdbService   parser.TmdbService
 	distOpService parser.DiskOpService
@@ -25,7 +25,7 @@ var (
 	}
 )
 
-func (p *TvEpParser) Parse(entry *dirinfo.Entry) error {
+func (p *AniTeamParser) Parse(entry *dirinfo.Entry) error {
 	// check entry is single media file
 	if entry == nil {
 		return fmt.Errorf("entry is nil")
@@ -102,7 +102,7 @@ func (p *TvEpParser) Parse(entry *dirinfo.Entry) error {
 	tmdbid = int(tmdbTvDetail.ID)
 
 	// logging
-	slog.Info("aniteam parser succ",
+	slog.Info(fmt.Sprintf("%s parser succ", templateName),
 		slog.Int("tmdbid", int(tmdbid)),
 		slog.String("originalName", tmdbTvDetail.OriginalName),
 		slog.String("airDate", tmdbTvDetail.FirstAirDate),

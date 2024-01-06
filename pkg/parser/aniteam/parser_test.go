@@ -73,7 +73,7 @@ func TestNormalSuccEntry(t *testing.T) {
 			},
 		},
 	}
-	parser := &TvEpParser{
+	parser := &AniTeamParser{
 		c:           emptyConfig,
 		tmdbService: fakeTmdbService,
 		distOpService: fakes.NewFakeDiskOpService(
@@ -104,7 +104,7 @@ func TestExplictTmdbId(t *testing.T) {
 			},
 		},
 	}
-	parser := &TvEpParser{
+	parser := &AniTeamParser{
 		c:           emptyConfig,
 		tmdbService: fakeTmdbService,
 		distOpService: fakes.NewFakeDiskOpService(
@@ -135,7 +135,7 @@ func TestWithChineaseSeasonInfo(t *testing.T) {
 			},
 		},
 	}
-	parser := &TvEpParser{
+	parser := &AniTeamParser{
 		c:           emptyConfig,
 		tmdbService: fakeTmdbService,
 		distOpService: fakes.NewFakeDiskOpService(
@@ -166,7 +166,7 @@ func TestWithUselessAgeRestrict(t *testing.T) {
 			},
 		},
 	}
-	parser := &TvEpParser{
+	parser := &AniTeamParser{
 		c:           emptyConfig,
 		tmdbService: fakeTmdbService,
 		distOpService: fakes.NewFakeDiskOpService(
@@ -197,7 +197,7 @@ func TestWithUselessRegionRestrict(t *testing.T) {
 			},
 		},
 	}
-	parser := &TvEpParser{
+	parser := &AniTeamParser{
 		c:           emptyConfig,
 		tmdbService: fakeTmdbService,
 		distOpService: fakes.NewFakeDiskOpService(
@@ -228,7 +228,7 @@ func TestWithUselessRegionRestrictAnotherOrder(t *testing.T) {
 			},
 		},
 	}
-	parser := &TvEpParser{
+	parser := &AniTeamParser{
 		c:           emptyConfig,
 		tmdbService: fakeTmdbService,
 		distOpService: fakes.NewFakeDiskOpService(
@@ -259,7 +259,7 @@ func TestWithExplictedSeasonEpisodeNum(t *testing.T) {
 			},
 		},
 	}
-	parser := &TvEpParser{
+	parser := &AniTeamParser{
 		c:           emptyConfig,
 		tmdbService: fakeTmdbService,
 		distOpService: fakes.NewFakeDiskOpService(
@@ -290,7 +290,7 @@ func TestWithPredefined(t *testing.T) {
 			},
 		},
 	}
-	parser := &TvEpParser{
+	parser := &AniTeamParser{
 		c:           withPredefindedConfig,
 		tmdbService: fakeTmdbService,
 		distOpService: fakes.NewFakeDiskOpService(

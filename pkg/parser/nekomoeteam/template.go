@@ -1,4 +1,4 @@
-package aniteam
+package nekomoeteam
 
 import (
 	"github.com/BurntSushi/toml"
@@ -8,7 +8,7 @@ import (
 )
 
 const (
-	templateName = "aniteam"
+	templateName = "nekomoeteam"
 )
 
 type Predefined struct {
@@ -35,7 +35,7 @@ func gen(configPath string, namedServices *parser.CommonServices, services servi
 	if err != nil {
 		return nil, err
 	}
-	parser := &AniTeamParser{
+	parser := &NekomoeTeamParser{
 		c:             c,
 		tmdbService:   namedServices.Tmdb,
 		distOpService: namedServices.DiskOp,
