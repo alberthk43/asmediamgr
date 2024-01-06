@@ -256,7 +256,7 @@ func (s *ParserServer) initParsers(namedServices *namedServices) ([]parserInfo, 
 			parser:   parser,
 			priority: parser.Priority(),
 		})
-		slog.Info("add parsers", slog.String("name", parserName))
+		slog.Info("add parsers", slog.String("name", parserName), slog.String("template", templateName))
 	}
 	return parsersInfo, nil
 }

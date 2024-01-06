@@ -27,6 +27,8 @@ type TmdbService interface {
 type DiskOpService interface {
 	RenameSingleTvEpFile(entry *dirinfo.Entry, old *dirinfo.File, tvDetail *tmdb.TVDetails, season int, episode int, destType diskop.DestType) error
 	RenameSingleMovieFile(entry *dirinfo.Entry, old *dirinfo.File, movieDetail *tmdb.MovieDetails, destType diskop.DestType) error
+	RenameMovieSubtiles(entry *dirinfo.Entry, filesMap map[string][]*dirinfo.File, movieDetail *tmdb.MovieDetails, destType diskop.DestType) error
+	DelDirEntry(entry *dirinfo.Entry) error
 }
 
 type CommonServices struct {

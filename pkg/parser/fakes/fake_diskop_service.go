@@ -10,8 +10,10 @@ import (
 )
 
 type FakeDiskOpService struct {
-	TvMatching    []tvMatching
-	MovieMatching []movieMatching
+	TvMatching           []tvMatching
+	MovieMatching        []movieMatching
+	movieSubtileMatching []movieSubtileMatching
+	isNeedDelDir         bool
 }
 
 type tvMatching struct {
@@ -28,6 +30,14 @@ type movieMatching struct {
 	old         *dirinfo.File
 	movieDetail *tmdb.MovieDetails
 	destType    diskop.DestType
+}
+
+type movieSubtileMatching struct {
+	entry       *dirinfo.Entry
+	old         *dirinfo.File
+	movieDetail *tmdb.MovieDetails
+	destType    diskop.DestType
+	language    string
 }
 
 func NewFakeDiskOpService(opts ...FakeDiskOpOption) *FakeDiskOpService {
@@ -66,6 +76,25 @@ func WithRenameSingleMovieFile(entry *dirinfo.Entry, old *dirinfo.File, movieDet
 	}
 }
 
+func WithRenameMovieSubtile(entry *dirinfo.Entry, old *dirinfo.File, movieDetail *tmdb.MovieDetails,
+	destType diskop.DestType, language string) FakeDiskOpOption {
+	return func(s *FakeDiskOpService) {
+		s.movieSubtileMatching = append(s.movieSubtileMatching, movieSubtileMatching{
+			entry:       entry,
+			old:         old,
+			movieDetail: movieDetail,
+			destType:    destType,
+			language:    language,
+		})
+	}
+}
+
+func WithNeedDelDir() FakeDiskOpOption {
+	return func(s *FakeDiskOpService) {
+		s.isNeedDelDir = true
+	}
+}
+
 func (dop *FakeDiskOpService) RenameSingleTvEpFile(entry *dirinfo.Entry, old *dirinfo.File, tvDetail *tmdb.TVDetails,
 	season int, episode int, destType diskop.DestType) error {
 	for _, match := range dop.TvMatching {
@@ -84,4 +113,32 @@ func (dop *FakeDiskOpService) RenameSingleMovieFile(entry *dirinfo.Entry, old *d
 		}
 	}
 	return fmt.Errorf("no matching for RenameSingleMovieFile")
+}
+
+func (dop *FakeDiskOpService) RenameMovieSubtiles(entry *dirinfo.Entry, filesMap map[string][]*dirinfo.File, movieDetail *tmdb.MovieDetails, destType diskop.DestType) error {
+	if len(filesMap) == 0 && len(dop.movieSubtileMatching) == 0 {
+		return nil
+	}
+	num := 0
+	for language, files := range filesMap {
+		for _, file := range files {
+			num++
+			for _, match := range dop.movieSubtileMatching {
+				if match.entry == entry && match.old == file && match.movieDetail == movieDetail && match.destType == destType && match.language == language {
+					num--
+				}
+			}
+		}
+	}
+	if num != 0 {
+		return fmt.Errorf("no matching for RenameMovieSubtiles")
+	}
+	return nil
+}
+
+func (dop *FakeDiskOpService) DelDirEntry(entry *dirinfo.Entry) error {
+	if !dop.isNeedDelDir {
+		return fmt.Errorf("no matching for DelDirEntry")
+	}
+	return nil
 }

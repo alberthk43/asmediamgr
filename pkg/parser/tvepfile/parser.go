@@ -80,7 +80,7 @@ func (p *TvEpParser) Parse(entry *dirinfo.Entry) error {
 	tmdbid = int(tmdbTvDetail.ID)
 
 	// logging
-	slog.Info("aniteam parser succ",
+	slog.Info(fmt.Sprintf("%s parser succ", templateName),
 		slog.Int("tmdbid", int(tmdbid)),
 		slog.String("originalName", tmdbTvDetail.OriginalName),
 		slog.String("airDate", tmdbTvDetail.FirstAirDate),

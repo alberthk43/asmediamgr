@@ -28,6 +28,7 @@ func TestScanMotherDir(t *testing.T) {
 		},
 		{
 			Type:       DirEntry,
+			MyDirPath:  "entry2",
 			MotherPath: motherDirPath,
 			FileList: []*File{
 				{
@@ -49,6 +50,7 @@ func TestScanMotherDir(t *testing.T) {
 }
 
 func testCheckEntiesSame(t testing.TB, expectedEntries, entries []*Entry) {
+	t.Helper()
 	if len(entries) != len(expectedEntries) {
 		t.Fatalf("entries length not match: %d != %d", len(entries), len(expectedEntries))
 	}
@@ -58,11 +60,15 @@ func testCheckEntiesSame(t testing.TB, expectedEntries, entries []*Entry) {
 }
 
 func testCheckEntrySame(t testing.TB, expectEntry, entry *Entry) {
+	t.Helper()
 	if expectEntry.Type != entry.Type {
 		t.Fatalf("entry type not match: %d != %d", expectEntry.Type, entry.Type)
 	}
 	if expectEntry.MotherPath != entry.MotherPath {
 		t.Fatalf("entry mother path not match: %s != %s", expectEntry.MotherPath, entry.MotherPath)
+	}
+	if expectEntry.MyDirPath != entry.MyDirPath {
+		t.Fatalf("entry my dir path not match: %s != %s", expectEntry.MyDirPath, entry.MyDirPath)
 	}
 	if len(expectEntry.FileList) != len(entry.FileList) {
 		t.Fatalf("entry file list length not match: %d != %d", len(expectEntry.FileList), len(entry.FileList))
@@ -73,6 +79,7 @@ func testCheckEntrySame(t testing.TB, expectEntry, entry *Entry) {
 }
 
 func testCheckFileSame(t testing.TB, expectFile, file *File) {
+	t.Helper()
 	if expectFile.RelPathToMother != file.RelPathToMother {
 		t.Fatalf("file rel path to mother not match: %s != %s", expectFile.RelPathToMother, file.RelPathToMother)
 	}

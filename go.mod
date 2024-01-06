@@ -6,6 +6,7 @@ require (
 	github.com/BurntSushi/toml v1.3.2
 	github.com/cyruzin/golang-tmdb v1.5.6
 	golang.org/x/net v0.19.0
+	golang.org/x/text v0.14.0
 )
 
 require (

@@ -6,4 +6,5 @@ import (
 	_ "asmediamgr/pkg/parser/gmteam"
 	_ "asmediamgr/pkg/parser/moviefile"
 	_ "asmediamgr/pkg/parser/tvepfile"
+	_ "asmediamgr/pkg/parser/ytsmoviedir"
 )

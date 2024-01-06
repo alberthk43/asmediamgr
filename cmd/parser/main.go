@@ -3,7 +3,6 @@ package main
 import (
 	"flag"
 	"fmt"
-	"log/slog"
 	"os"
 
 	asmediamgr "asmediamgr/internal"
@@ -19,7 +18,7 @@ const (
 func main() {
 	flag.Parse()
 	if err := asmediamgr.PrepareLog(mainFilePath); err != nil {
-		slog.Error("Failed to prepare logging: %s", err)
+		fmt.Printf("Failed to prepare logging: %s\n", err)
 		os.Exit(1)
 	}
 	c, err := config.LoadConfigurationFromFile(asmediamgr.Config)

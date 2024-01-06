@@ -22,6 +22,7 @@ const (
 
 type Entry struct {
 	Type       EntryType
+	MyDirPath  string
 	MotherPath string
 	FileList   []*File
 }
@@ -89,6 +90,7 @@ func dirEntry(sub fs.DirEntry, motherPath string) (*Entry, error) {
 	}
 	e := &Entry{
 		Type:       DirEntry,
+		MyDirPath:  sub.Name(),
 		MotherPath: motherPath,
 	}
 	filepath.WalkDir(filepath.Join(motherPath, sub.Name()), func(path string, d fs.DirEntry, err error) error {
