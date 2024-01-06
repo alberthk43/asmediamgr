@@ -3,16 +3,23 @@ package utils
 var (
 	mediaExt = map[string]struct{}{
 		".mp4":  {},
+		".MP4":  {},
 		".mkv":  {},
+		".MKV":  {},
 		".avi":  {},
+		".AVI":  {},
 		".rmvb": {},
+		".RMVB": {},
 		".rm":   {},
+		".RM":   {},
 		".wmv":  {},
+		".WMV":  {},
 		".flv":  {},
+		".FLV":  {},
 		".mov":  {},
-		".mpg":  {},
-		".mpeg": {},
+		".MOV":  {},
 		".m4v":  {},
+		".M4V":  {},
 	}
 )
 
