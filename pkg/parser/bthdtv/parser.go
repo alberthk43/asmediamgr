@@ -23,9 +23,12 @@ func (p *BtHdtvParser) Parse(entry *dirinfo.Entry) error {
 	}
 
 	// try match with dir name pattern
-	name, seasonNum, err := regexMatchDirName(entry)
+	name, err := regexMatchDirName(entry)
 	if err != nil {
-		return fmt.Errorf("failed to regex match dir name: %v", err)
+		_, err := regexMatchTmdbId(entry)
+		if err != nil {
+			return fmt.Errorf("failed to regex match tmdbid: %v", err)
+		}
 	}
 
 	// classify files
@@ -58,9 +61,6 @@ func (p *BtHdtvParser) Parse(entry *dirinfo.Entry) error {
 	// check again
 	if tmdbid <= 0 {
 		return fmt.Errorf("failed to match tmdbid")
-	}
-	if seasonNum < 0 {
-		return fmt.Errorf("failed to match seasonNum")
 	}
 
 	// get tv detail
@@ -184,19 +184,18 @@ var (
 	regexDirName = regexp.MustCompile(`BTHDTV\.com.*\]\.(?P<name>.*)\.(?P<year>\d{4})\.S(?P<season>\d+)`)
 )
 
-func regexMatchDirName(entry *dirinfo.Entry) (name string, seasonNum int, err error) {
+func regexMatchDirName(entry *dirinfo.Entry) (name string, err error) {
 	if entry.Type != dirinfo.DirEntry {
-		return "", -1, fmt.Errorf("entry is not a dir entry")
+		return "", fmt.Errorf("entry is not a dir entry")
 	}
 	match := regexDirName.FindStringSubmatch(entry.MyDirPath)
 	if match == nil {
-		return "", -1, fmt.Errorf("failed to regex match dir name")
+		return "", fmt.Errorf("failed to regex match dir name")
 	}
 	name = match[1]
-	seasonNum, err = strconv.Atoi(match[2])
 	if err != nil {
-		return "", -1, fmt.Errorf("failed to convert season num: %v", err)
+		return "", fmt.Errorf("failed to convert season num: %v", err)
 	}
 	name = strings.ReplaceAll(name, ".", " ")
-	return name, seasonNum, nil
+	return name, nil
 }
