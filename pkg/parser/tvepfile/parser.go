@@ -98,7 +98,7 @@ func (p *TvEpParser) Parse(entry *dirinfo.Entry) error {
 }
 
 var (
-	fileNameRegexp = regexp.MustCompile(`^(?P<name>.*)\.(S|s)(?P<season>\d+)(E|e)(?P<ep>\d+)`)
+	fileNameRegexp = regexp.MustCompile(`^(?P<name>.*)(S|s)(?P<season>\d+)(E|e)(?P<ep>\d+)`)
 )
 
 type rawInfo struct {
@@ -159,5 +159,7 @@ var (
 )
 
 func regulationName(name string) string {
-	return strings.ReplaceAll(name, ".", " ")
+	name = strings.ReplaceAll(name, ".", " ")
+	name = strings.TrimSpace(name)
+	return name
 }

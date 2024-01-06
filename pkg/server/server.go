@@ -111,7 +111,7 @@ func (s *ParserServer) runWithMotherDir(motherDir config.MontherDir, retryConMap
 		if retryCon, ok := retryConMap[name]; !ok {
 			retryConMap[name] = &retryControl{
 				visited:  true,
-				n:        0,
+				n:        30,
 				nextTime: now,
 			}
 		} else {
@@ -162,7 +162,7 @@ func (s *ParserServer) runWithEntry(entry *dirinfo.Entry) {
 	name := getEntrySpecificName(entry)
 	for _, parserInfo := range s.parsersInfo {
 		if err := parserInfo.parser.Parse(entry); err != nil {
-			slog.Debug("failed to parse entry", slog.String("parser", parserInfo.info()), slog.String("entry", name), slog.String("err", err.Error()))
+			slog.Info("failed to parse entry", slog.String("parser", parserInfo.info()), slog.String("entry", name), slog.String("err", err.Error()))
 		} else {
 			slog.Info("succ to parse entry", slog.String("parser", parserInfo.info()), slog.String("entry", name))
 			return

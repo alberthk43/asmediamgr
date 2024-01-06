@@ -74,7 +74,7 @@ func fileEntry(sub fs.DirEntry, motherPath string) (*Entry, error) {
 		MotherPath: motherPath,
 		FileList: []*File{
 			{
-				RelPathToMother: "",
+				RelPathToMother: sub.Name(),
 				Name:            sub.Name(),
 				Ext:             filepath.Ext(sub.Name()),
 				BytesNum:        info.Size(),

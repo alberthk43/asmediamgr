@@ -19,7 +19,7 @@ func TestScanMotherDir(t *testing.T) {
 			MotherPath: motherDirPath,
 			FileList: []*File{
 				{
-					RelPathToMother: "",
+					RelPathToMother: "entry1.txt",
 					Name:            "entry1.txt",
 					Ext:             ".txt",
 					BytesNum:        0,

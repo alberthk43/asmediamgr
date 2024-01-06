@@ -10,15 +10,7 @@ import (
 )
 
 var (
-	emptyConfig           = &Configuration{}
-	withPredefindedConfig = &Configuration{
-		Predefined: []Predefined{
-			{
-				Name:   "Predefined Name",
-				TmdbId: 123456789,
-			},
-		},
-	}
+	emptyConfig = &Configuration{}
 )
 
 var (
@@ -153,6 +145,17 @@ func TestWithTmdbId(t *testing.T) {
 		t.Fatal(err)
 	}
 }
+
+var (
+	withPredefindedConfig = &Configuration{
+		Predefined: []Predefined{
+			{
+				Name:   "Predefined Name.",
+				TmdbId: 123456789,
+			},
+		},
+	}
+)
 
 func TestWithPredefined(t *testing.T) {
 	entry := &dirinfo.Entry{
