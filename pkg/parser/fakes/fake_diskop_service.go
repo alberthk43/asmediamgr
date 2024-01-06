@@ -142,3 +142,8 @@ func (dop *FakeDiskOpService) DelDirEntry(entry *dirinfo.Entry) error {
 	}
 	return nil
 }
+
+func (dop *FakeDiskOpService) RenameTvMusicFile(entry *dirinfo.Entry, old *dirinfo.File, tvDetail *tmdb.TVDetails, name string, destType diskop.DestType) error {
+	// TODO current not important, not verified
+	return nil
+}

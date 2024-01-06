@@ -29,6 +29,7 @@ type DiskOpService interface {
 	RenameSingleMovieFile(entry *dirinfo.Entry, old *dirinfo.File, movieDetail *tmdb.MovieDetails, destType diskop.DestType) error
 	RenameMovieSubtiles(entry *dirinfo.Entry, filesMap map[string][]*dirinfo.File, movieDetail *tmdb.MovieDetails, destType diskop.DestType) error
 	DelDirEntry(entry *dirinfo.Entry) error
+	RenameTvMusicFile(entry *dirinfo.Entry, old *dirinfo.File, tvDetail *tmdb.TVDetails, name string, destType diskop.DestType) error
 }
 
 type CommonServices struct {
