@@ -1,0 +1,9 @@
+[[predefined_list]]
+name = "ABC"
+tmdbid = 123
+season_num = 2
+
+[[predefined_list]]
+name = "DEF"
+tmdbid = 456
+season_num = 99

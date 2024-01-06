@@ -1,3 +1,0 @@
-package dirpath
-
-// nothing yet
