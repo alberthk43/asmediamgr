@@ -111,7 +111,7 @@ func (s *ParserServer) runWithMotherDir(motherDir config.MontherDir, retryConMap
 		if retryCon, ok := retryConMap[name]; !ok {
 			retryConMap[name] = &retryControl{
 				visited:  true,
-				n:        30,
+				n:        6, // 64 seconds later
 				nextTime: now,
 			}
 		} else {

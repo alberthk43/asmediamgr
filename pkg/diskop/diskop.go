@@ -219,3 +219,38 @@ func (dop *DiskOpService) DelDirEntry(entry *dirinfo.Entry) error {
 	dirPath := filepath.Join(entry.MotherPath, entry.MyDirPath)
 	return os.RemoveAll(dirPath)
 }
+
+func (dop *DiskOpService) RenameTvMusicFile(entry *dirinfo.Entry, old *dirinfo.File, tvDetail *tmdb.TVDetails,
+	name string, destType DestType) error {
+	oldPath := filepath.Join(entry.MotherPath, old.RelPathToMother)
+	tvDir, err := tvDirName(tvDetail)
+	if err != nil {
+		return fmt.Errorf("failed to get tvDirName: %v", err)
+	}
+	seasonDir := "Music"
+	fileName := name
+	destDir, ok := dop.destPathMap[destType]
+	if !ok {
+		return fmt.Errorf("no destPath for destType: %v", destType)
+	}
+	allDirPath := filepath.Join(destDir, tvDir, seasonDir)
+	err = os.MkdirAll(allDirPath, 0755)
+	if err != nil {
+		return fmt.Errorf("failed to create dir: %v", err)
+	}
+	newPath := filepath.Join(destDir, tvDir, seasonDir, fileName)
+	newFileStat, err := os.Stat(newPath)
+	if err != nil {
+		if !os.IsNotExist(err) {
+			return fmt.Errorf("failed to stat new file: %v", err)
+		}
+	} else {
+		return fmt.Errorf("new file already exists: %v", newFileStat)
+	}
+	err = os.Rename(oldPath, newPath)
+	if err != nil {
+		return fmt.Errorf("failed to create dir: %v", err)
+	}
+	slog.Info("succ to rename single tv episode file", slog.String("old", oldPath), slog.String("new", newPath))
+	return nil
+}
