@@ -181,7 +181,8 @@ func regexMatchEpisodeFile(file *dirinfo.File) (season int, ep int, err error) {
 }
 
 var (
-	regexDirName = regexp.MustCompile(`BTHDTV\.com.*\]\.(?P<name>.*)\.(?P<year>\d{4})\.S(?P<season>\d+)`)
+	regexDirName  = regexp.MustCompile(`BTHDTV\.com.*\]\.(?P<name>.*)\.(?P<year>\d{4})\.S(?P<season>\d+)`)
+	regexDirName2 = regexp.MustCompile(`DDHDTV\.com.*\]\.(?P<name>.*)\.S(?P<season>\d+)\.(?P<year>\d{4})`)
 )
 
 func regexMatchDirName(entry *dirinfo.Entry) (name string, err error) {
@@ -190,7 +191,10 @@ func regexMatchDirName(entry *dirinfo.Entry) (name string, err error) {
 	}
 	match := regexDirName.FindStringSubmatch(entry.MyDirPath)
 	if match == nil {
-		return "", fmt.Errorf("failed to regex match dir name")
+		match = regexDirName2.FindStringSubmatch(entry.MyDirPath)
+		if match == nil {
+			return "", fmt.Errorf("failed to regex match dir name")
+		}
 	}
 	name = match[1]
 	if err != nil {

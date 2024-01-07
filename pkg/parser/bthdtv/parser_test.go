@@ -120,6 +120,80 @@ func TestNormalName(t *testing.T) {
 	}
 }
 
+func TestNormalName2(t *testing.T) {
+	entry := &dirinfo.Entry{
+		Type:       dirinfo.DirEntry,
+		MyDirPath:  "【高清剧集网发布 www.DDHDTV.com】中文名[全8集][简繁英字幕].Some.Name.S01.2023.1080p.DSNP.WEB-DL.H264.DDP5.1-ZeroTV",
+		MotherPath: "",
+		FileList: []*dirinfo.File{
+			{
+				RelPathToMother: "【高清剧集网发布 www.DDHDTV.com】中文名[全8集][简繁英字幕].Some.Name.S01.2023.1080p.DSNP.WEB-DL.H264.DDP5.1-ZeroTV/Some Name S04E01.mp4",
+				Name:            "Some Name S04E01.mp4",
+				Ext:             ".mp4",
+				BytesNum:        1024 * 1024 * 1000,
+			},
+			{
+				RelPathToMother: "【高清剧集网发布 www.DDHDTV.com】中文名[全8集][简繁英字幕].Some.Name.S01.2023.1080p.DSNP.WEB-DL.H264.DDP5.1-ZeroTV/Some Name S04E02.mp4",
+				Name:            "Some Name S04E02.mp4",
+				Ext:             ".mp4",
+				BytesNum:        1024 * 1024 * 1000,
+			},
+			{
+				RelPathToMother: "【高清剧集网发布 www.DDHDTV.com】中文名[全8集][简繁英字幕].Some.Name.S01.2023.1080p.DSNP.WEB-DL.H264.DDP5.1-ZeroTV/Some Name S04E03.mp4",
+				Name:            "Some Name S04E03.mp4",
+				Ext:             ".mp4",
+				BytesNum:        1024 * 1024 * 1000,
+			},
+			{
+				RelPathToMother: "【高清剧集网发布 www.DDHDTV.com】中文名[全8集][简繁英字幕].Some.Name.S01.2023.1080p.DSNP.WEB-DL.H264.DDP5.1-ZeroTV/23432566.torrent",
+				Name:            "23432566.torrent",
+				Ext:             ".torrent",
+				BytesNum:        1024 * 1024 * 1, // 1 MB
+			},
+			{
+				RelPathToMother: "【高清剧集网发布 www.DDHDTV.com】中文名[全8集][简繁英字幕].Some.Name.S01.2023.1080p.DSNP.WEB-DL.H264.DDP5.1-ZeroTV/AdFile.mp4",
+				Name:            "AdFile.mp4",
+				Ext:             ".mp4",
+				BytesNum:        1024 * 1024 * 1, // 1 MB
+			},
+		},
+	}
+	parser := &BtHdtvParser{
+		tmdbService: fakeTmdbService,
+		distOpService: fakes.NewFakeDiskOpService(
+			fakes.WithNeedDelDir(),
+			fakes.WithRenameSingleTvEpFile(
+				entry,
+				entry.FileList[0],
+				tvDetail,
+				4,
+				1,
+				diskop.OnAirTv,
+			),
+			fakes.WithRenameSingleTvEpFile(
+				entry,
+				entry.FileList[1],
+				tvDetail,
+				4,
+				2,
+				diskop.OnAirTv,
+			),
+			fakes.WithRenameSingleTvEpFile(
+				entry,
+				entry.FileList[2],
+				tvDetail,
+				4,
+				3,
+				diskop.OnAirTv,
+			),
+		),
+	}
+	err := parser.Parse(entry)
+	if err != nil {
+		t.Fatal(err)
+	}
+}
+
 func TestExplicitTmdbId(t *testing.T) {
 	entry := &dirinfo.Entry{
 		Type:       dirinfo.DirEntry,
@@ -193,4 +267,3 @@ func TestExplicitTmdbId(t *testing.T) {
 		t.Fatal(err)
 	}
 }
-
