@@ -4,6 +4,7 @@ import (
 	"fmt"
 	"log/slog"
 	"math"
+	"net/http"
 	"os"
 	"path/filepath"
 	"sort"
@@ -15,7 +16,10 @@ import (
 	"asmediamgr/pkg/dirinfo"
 	"asmediamgr/pkg/diskop"
 	"asmediamgr/pkg/parser"
+	"asmediamgr/pkg/prometric"
 	"asmediamgr/pkg/tmdb"
+
+	"github.com/prometheus/client_golang/prometheus/promhttp"
 )
 
 func PrintAndDie(msg string) {
@@ -61,8 +65,16 @@ func Run(s *ParserServer) error {
 	}
 	sorted := sortParserInfo(parsersInfoSlice)
 	s.parsersInfo = sorted
+	s.runProMetrics()
 	s.runMotherDirs()
 	return nil
+}
+
+func (s *ParserServer) runProMetrics() {
+	go func() {
+		http.Handle("/metrics", promhttp.Handler())
+		http.ListenAndServe(":9999", nil)
+	}()
 }
 
 func (s *ParserServer) runMotherDirs() {
@@ -77,14 +89,15 @@ func (s *ParserServer) runMotherDir(motherDir config.MontherDir) {
 	defer slog.Info("end mother dir loop", slog.String("dir_path", motherDir.DirPath))
 	slog.Info("start mother dir loop", slog.String("dir_path", motherDir.DirPath))
 	retryConMap := make(map[string]*retryControl)
+	ticker := time.NewTicker(motherDir.SleepInterval)
+	defer ticker.Stop()
 	for {
 		select {
 		case <-s.doneCh:
 			return
-		default:
-			slog.Debug("mother dir run", slog.String("dir_path", motherDir.DirPath))
+		case <-ticker.C:
+			slog.Info("mother dir run", slog.String("dir_path", motherDir.DirPath))
 			s.runWithMotherDir(motherDir, retryConMap)
-			time.Sleep(motherDir.SleepInterval)
 		}
 	}
 }
@@ -97,6 +110,7 @@ type retryControl struct {
 
 // runWithMotherDir impls with repeated error protection, 2**n try interval and retry
 func (s *ParserServer) runWithMotherDir(motherDir config.MontherDir, retryConMap map[string]*retryControl) {
+	prometric.LoopMontherDirInc()
 	entries, err := dirinfo.ScanMotherDir(motherDir.DirPath)
 	if err != nil {
 		slog.Error("failed to scan mother dir", slog.String("dir_path", motherDir.DirPath), slog.String("err", err.Error()))
@@ -159,12 +173,15 @@ func getEntrySpecificName(entry *dirinfo.Entry) string {
 }
 
 func (s *ParserServer) runWithEntry(entry *dirinfo.Entry) {
+	prometric.EntryInc()
 	name := getEntrySpecificName(entry)
 	for _, parserInfo := range s.parsersInfo {
+		prometric.ParserInc()
 		if err := parserInfo.parser.Parse(entry); err != nil {
 			slog.Info("failed to parse entry", slog.String("parser", parserInfo.info()), slog.String("entry", name), slog.String("err", err.Error()))
 		} else {
 			slog.Info("succ to parse entry", slog.String("parser", parserInfo.info()), slog.String("entry", name))
+			prometric.ParserSuccInc()
 			return
 		}
 	}
