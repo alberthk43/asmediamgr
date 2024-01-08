@@ -1,6 +1,8 @@
 package prometric
 
 import (
+	"sync"
+
 	"github.com/prometheus/client_golang/prometheus"
 	"github.com/prometheus/client_golang/prometheus/promauto"
 )
@@ -25,6 +27,9 @@ var (
 		Name: "parser_succ_ops_total",
 		Help: "The total number of parser operations",
 	})
+
+	muOpsCounterMapOfParsers sync.Mutex
+	opsCounterMapOfParsers   = make(map[string]prometheus.Counter)
 )
 
 func LoopMontherDirInc() {
@@ -41,4 +46,18 @@ func ParserInc() {
 
 func ParserSuccInc() {
 	succOpsParserCounter.Inc()
+}
+
+func TemplateParserInc(name string) {
+	muOpsCounterMapOfParsers.Lock()
+	defer muOpsCounterMapOfParsers.Unlock()
+	c, ok := opsCounterMapOfParsers[name]
+	if !ok {
+		c = promauto.NewCounter(prometheus.CounterOpts{
+			Name: "parser_" + name + "_ops_total",
+			Help: "The total number of parser operations",
+		})
+		opsCounterMapOfParsers[name] = c
+	}
+	c.Inc()
 }

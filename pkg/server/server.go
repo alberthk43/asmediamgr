@@ -12,14 +12,14 @@ import (
 	"sync"
 	"time"
 
+	"github.com/prometheus/client_golang/prometheus/promhttp"
+
 	"asmediamgr/pkg/config"
 	"asmediamgr/pkg/dirinfo"
 	"asmediamgr/pkg/diskop"
 	"asmediamgr/pkg/parser"
 	"asmediamgr/pkg/prometric"
 	"asmediamgr/pkg/tmdb"
-
-	"github.com/prometheus/client_golang/prometheus/promhttp"
 )
 
 func PrintAndDie(msg string) {
@@ -86,6 +86,8 @@ func (s *ParserServer) runMotherDirs() {
 func (s *ParserServer) runMotherDir(motherDir config.MontherDir) {
 	s.wg.Add(1)
 	defer s.wg.Done()
+	prometric.CurMontherDirAdd()
+	defer prometric.CurMontherDirDec()
 	defer slog.Info("end mother dir loop", slog.String("dir_path", motherDir.DirPath))
 	slog.Info("start mother dir loop", slog.String("dir_path", motherDir.DirPath))
 	retryConMap := make(map[string]*retryControl)
@@ -139,22 +141,30 @@ func (s *ParserServer) runWithMotherDir(motherDir config.MontherDir, retryConMap
 	}
 	for _, entry := range entries {
 		name := getEntrySpecificName(entry)
-		if retryCon, ok := retryConMap[name]; ok {
-			if now.Sub(retryCon.nextTime) >= 0 {
-				s.runWithEntry(entry)
-				time.Sleep(time.Second)
-			}
-			retryCon.n++
-			retryCon.nextTime = nextRetryTime(retryCon.n, now)
-		} else {
+		retryCon, ok := retryConMap[name]
+		if !ok {
 			slog.Error("entry map not found", slog.String("dir_path", motherDir.DirPath))
 			return
+		}
+		var err error
+		if now.Sub(retryCon.nextTime) >= 0 {
+			err = s.runWithEntry(entry)
+			time.Sleep(time.Second)
+		}
+		retryCon.n++
+		nextTime := nextRetryTime(retryCon.n, now)
+		retryCon.nextTime = nextTime
+		if err != nil {
+			slog.Info("failed to parse entry", slog.String("entry", name),
+				slog.String("err", err.Error()),
+				slog.String("next_time", nextTime.String()),
+			)
 		}
 	}
 }
 
 func nextRetryTime(n int, now time.Time) time.Time {
-	const maxRetryInterval = 60 * 60 * 24 // 1 day
+	const maxRetryInterval = 60 * 60 * time.Second // 1 hour
 	if n <= 0 {
 		return now.Add(maxRetryInterval)
 	}
@@ -172,19 +182,21 @@ func getEntrySpecificName(entry *dirinfo.Entry) string {
 	return entry.FileList[0].Name
 }
 
-func (s *ParserServer) runWithEntry(entry *dirinfo.Entry) {
+func (s *ParserServer) runWithEntry(entry *dirinfo.Entry) error {
 	prometric.EntryInc()
 	name := getEntrySpecificName(entry)
 	for _, parserInfo := range s.parsersInfo {
 		prometric.ParserInc()
+		prometric.TemplateParserInc(parserInfo.template)
 		if err := parserInfo.parser.Parse(entry); err != nil {
 			slog.Info("failed to parse entry", slog.String("parser", parserInfo.info()), slog.String("entry", name), slog.String("err", err.Error()))
 		} else {
 			slog.Info("succ to parse entry", slog.String("parser", parserInfo.info()), slog.String("entry", name))
 			prometric.ParserSuccInc()
-			return
+			return nil
 		}
 	}
+	return fmt.Errorf("no parser found for entry: %s", name)
 }
 
 func (s *ParserServer) initServices() (*namedServices, error) {
