@@ -93,12 +93,12 @@ func (s *ParserServer) runMotherDir(motherDir config.MontherDir) {
 	retryConMap := make(map[string]*retryControl)
 	ticker := time.NewTicker(motherDir.SleepInterval)
 	defer ticker.Stop()
+	s.runWithMotherDir(motherDir, retryConMap)
 	for {
 		select {
 		case <-s.doneCh:
 			return
 		case <-ticker.C:
-			slog.Info("mother dir run", slog.String("dir_path", motherDir.DirPath))
 			s.runWithMotherDir(motherDir, retryConMap)
 		}
 	}
@@ -112,6 +112,7 @@ type retryControl struct {
 
 // runWithMotherDir impls with repeated error protection, 2**n try interval and retry
 func (s *ParserServer) runWithMotherDir(motherDir config.MontherDir, retryConMap map[string]*retryControl) {
+	slog.Info("mother dir run", slog.String("dir_path", motherDir.DirPath))
 	prometric.LoopMontherDirInc()
 	entries, err := dirinfo.ScanMotherDir(motherDir.DirPath)
 	if err != nil {
