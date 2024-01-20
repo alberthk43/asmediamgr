@@ -177,6 +177,9 @@ func nextRetryTime(n int, now time.Time) time.Time {
 }
 
 func getEntrySpecificName(entry *dirinfo.Entry) string {
+	if entry.Type == dirinfo.DirEntry {
+		return entry.MyDirPath
+	}
 	if len(entry.FileList) == 0 {
 		return ""
 	}
