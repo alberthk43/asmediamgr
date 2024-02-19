@@ -21,6 +21,7 @@ func getLanguageFromFileName(name string) (languageStr string, err error) {
 
 var (
 	specials = map[string]string{
+		"English.eng":        language.English.String(),
 		"English":            language.English.String(),
 		"Simplified.chi":     language.SimplifiedChinese.String(),
 		"Traditional.chi":    language.TraditionalChinese.String(),

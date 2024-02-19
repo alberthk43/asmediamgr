@@ -59,6 +59,7 @@ func TestSpecialLanguageMatch(t *testing.T) {
 		want string
 	}{
 		{name: "English", want: "en"},
+		{name: "English.eng", want: "en"},
 		{name: "Simplified.chi", want: "zh-Hans"},
 		{name: "Traditional.chi", want: "zh-Hant"},
 		{name: "Brazilian.por", want: "pt-BR"},
