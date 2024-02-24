@@ -28,6 +28,7 @@ var (
 		"Brazilian.por":      language.BrazilianPortuguese.String(),
 		"Latin American.spa": language.LatinAmericanSpanish.String(),
 		"SDH.eng.HI":         language.English.String() + ".sdh",
+		"繁體.chi":             language.TraditionalChinese.String(),
 	}
 
 	langMatcher = language.NewMatcher([]language.Tag{
