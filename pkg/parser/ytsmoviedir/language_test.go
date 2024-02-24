@@ -65,6 +65,7 @@ func TestSpecialLanguageMatch(t *testing.T) {
 		{name: "Brazilian.por", want: "pt-BR"},
 		{name: "Latin American.spa", want: "es-419"},
 		{name: "SDH.eng.HI", want: "en.sdh"},
+		{name: "繁體.chi", want: "zh-Hant"},
 	}
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
