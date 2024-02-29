@@ -6,6 +6,7 @@ require (
 	github.com/BurntSushi/toml v1.3.2
 	github.com/cyruzin/golang-tmdb v1.5.6
 	github.com/prometheus/client_golang v1.18.0
+	github.com/robfig/cron/v3 v3.0.1
 	golang.org/x/net v0.19.0
 	golang.org/x/text v0.14.0
 )
