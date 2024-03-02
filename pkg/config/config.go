@@ -22,7 +22,7 @@ type MontherDir struct {
 }
 
 const (
-	MediaTypeTv    = "tv"
+	MediaTypeTv    = "tvshow"
 	MediaTypeMovie = "movie"
 )
 

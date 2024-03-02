@@ -19,6 +19,8 @@ import (
 	"asmediamgr/pkg/diskop"
 	"asmediamgr/pkg/parser"
 	"asmediamgr/pkg/prometric"
+	"asmediamgr/pkg/stat"
+	_ "asmediamgr/pkg/stat/checkers"
 	"asmediamgr/pkg/tmdb"
 )
 
@@ -67,6 +69,10 @@ func Run(s *ParserServer) error {
 	s.parsersInfo = sorted
 	s.runProMetrics()
 	s.runMotherDirs()
+
+	// run reporter
+	go stat.RunStat(s.conf)
+
 	return nil
 }
 
