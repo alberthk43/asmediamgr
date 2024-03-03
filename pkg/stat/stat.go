@@ -6,6 +6,7 @@ import (
 	"os"
 	"regexp"
 	"strconv"
+	"strings"
 
 	"asmediamgr/pkg/config"
 	"asmediamgr/pkg/dirinfo"
@@ -22,7 +23,7 @@ var (
 	reporter = &statReporter{}
 )
 
-func RegisterChecker(c StatChecker) {
+func RegisterMovieChecker(c StatChecker) {
 	reporter.movieCheckers = append(reporter.movieCheckers, c)
 }
 
@@ -40,6 +41,8 @@ type Stat struct {
 type MovieStat struct {
 	MovieFileNum    int
 	SubtitleFileNum int
+	ShortFileNum    int
+	UnknownFileNum  int
 }
 
 type TvshowStat struct {
@@ -91,7 +94,7 @@ func statDir(statDir *config.StatDir) error {
 }
 
 func statEntry(statDir *config.StatDir, entry *dirinfo.Entry) error {
-	log.Printf("lv=info component=stat msg=\"stat entry\" entry=%+v\n", entry)
+	// log.Printf("lv=info component=stat msg=\"stat entry\" entry=%+v\n", entry)
 	if entry.Type == dirinfo.FileEntry {
 		statChan <- &Stat{Entry: entry, Lasterr: fmt.Errorf("entry is a file")}
 		return nil
@@ -146,7 +149,11 @@ func statMovieEntry(entry *dirinfo.Entry) error {
 		if utils.IsSubtitleExt(aFile.Ext) {
 			movieStat.SubtitleFileNum++
 		} else if utils.IsMediaExt(aFile.Ext) {
-			movieStat.MovieFileNum++
+			if strings.Contains(aFile.RelPathToMother, `/shorts/`) {
+				movieStat.ShortFileNum++
+			} else {
+				movieStat.MovieFileNum++
+			}
 		}
 	}
 	statChan <- stat
@@ -203,15 +210,19 @@ func (r *statReporter) reset() {
 }
 
 func (r *statReporter) gather(stat *Stat) {
-	log.Printf("lv=info component=report msg=\"reporter gathter\" stat=%+v\n", stat)
+	// log.Printf("lv=info component=report msg=\"reporter gathter\" stat=%+v\n", stat)
+	if stat.Lasterr != nil {
+		log.Printf("lv=error component=report msg=\"stat has error\" stat=%+v err=%v\n", stat, stat.Lasterr)
+		return
+	}
 	switch stat.MediaTp {
 	case mediaTypeTv:
-		log.Printf("lv=info component=report mediaType=%d stat=%+v\n", stat.MediaTp, stat)
+		// log.Printf("lv=info component=report mediaType=%d stat=%+v\n", stat.MediaTp, stat)
 		stats := r.tvshows[stat.Tmdbid]
 		stats = append(stats, *stat)
 		r.tvshows[stat.Tmdbid] = stats
 	case mediaTypeMovie:
-		log.Printf("lv=info component=report mediaType=%d stat=%+v\n", stat.MediaTp, stat)
+		// log.Printf("lv=info component=report mediaType=%d stat=%+v\n", stat.MediaTp, stat)
 		stats := r.movies[stat.Tmdbid]
 		stats = append(stats, *stat)
 		r.movies[stat.Tmdbid] = stats
