@@ -7,6 +7,7 @@ import (
 
 	asmediamgr "asmediamgr/internal"
 	_ "asmediamgr/internal/builtin"
+	"asmediamgr/pkg/common/aslog"
 	"asmediamgr/pkg/config"
 	"asmediamgr/pkg/server"
 )
@@ -15,7 +16,18 @@ const (
 	mainFilePath = "/cmd/parser/main.go"
 )
 
+type flagConfig struct {
+	aslogConfig *aslog.Config
+}
+
 func main() {
+
+	// cfg := flagConfig{
+	// 	aslogConfig: &aslog.Config{},
+	// }
+
+	// logger := aslog.New(cfg.aslogConfig)
+
 	flag.Parse()
 	if err := asmediamgr.PrepareLog(mainFilePath); err != nil {
 		fmt.Printf("Failed to prepare logging: %s\n", err)

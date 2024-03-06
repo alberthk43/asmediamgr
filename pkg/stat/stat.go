@@ -2,11 +2,13 @@ package stat
 
 import (
 	"fmt"
-	"log"
 	"os"
 	"regexp"
 	"strconv"
 	"strings"
+
+	"github.com/go-kit/log"
+	"github.com/go-kit/log/level"
 
 	"asmediamgr/pkg/config"
 	"asmediamgr/pkg/dirinfo"
@@ -18,8 +20,6 @@ const (
 )
 
 var (
-	conf     *config.Configuration
-	statChan = make(chan *Stat, 1)
 	reporter = &statReporter{}
 )
 
@@ -27,7 +27,21 @@ func RegisterMovieChecker(c StatChecker) {
 	reporter.movieCheckers = append(reporter.movieCheckers, c)
 }
 
+// StatOpts is a struct that holds options to create a new Stat to run stat task
+type StatOpts struct {
+	Logger log.Logger
+	Config *config.Configuration
+}
+
+// Stat is a struct that holds infomation to run stat task
 type Stat struct {
+	logger   log.Logger
+	Config   *config.Configuration
+	statChan chan *StatInfo
+}
+
+// StatInfo is a struct that holds single entry stat info
+type StatInfo struct {
 	MsgType    msgType
 	Entry      *dirinfo.Entry // raw entry
 	Lasterr    error
@@ -36,6 +50,25 @@ type Stat struct {
 	TotalSize  int64
 	MovieStat  *MovieStat
 	TvshowStat *TvshowStat
+}
+
+func NewStat(opts *StatOpts) *Stat {
+	if opts.Logger == nil {
+		opts.Logger = log.NewNopLogger()
+	}
+	st := &Stat{
+		logger:   opts.Logger,
+		Config:   opts.Config,
+		statChan: make(chan *StatInfo, 1),
+	}
+	return st
+}
+
+func RunStat(st *Stat) {
+	level.Info(st.logger).Log("msg", "start stat task")
+	go st.statTask()
+	go st.reporterTask()
+	select {}
 }
 
 type MovieStat struct {
@@ -63,89 +96,90 @@ const (
 	mediaTypeMovie
 )
 
-func statTask() {
-	log.Printf("lv=info component=stat msg=\"full start stat task\"\n")
-	statChan <- &Stat{MsgType: msgTypeStart}
+func (st *Stat) statTask() {
+	// log.Printf("lv=info component=stat msg=\"full start stat task\"\n")
+	st.statChan <- &StatInfo{MsgType: msgTypeStart}
+	conf := st.Config
 	for i := range conf.StatDirs {
-		log.Printf("lv=info component=stat msg=\"start stat task\" dir=%s\n", conf.StatDirs[i].DirPath)
-		err := statDir(&conf.StatDirs[i])
+		// log.Printf("lv=info component=stat msg=\"start stat task\" dir=%s\n", conf.StatDirs[i].DirPath)
+		err := st.statDir(&conf.StatDirs[i])
 		if err != nil {
-			log.Printf("lv=error component=stat msg=\"%v\"\n", err)
+			// log.Printf("lv=error component=stat msg=\"%v\"\n", err)
 		}
-		log.Printf("lv=info component=stat msg=\"end stat task\" dir=%s\n", conf.StatDirs[i].DirPath)
+		// log.Printf("lv=info component=stat msg=\"end stat task\" dir=%s\n", conf.StatDirs[i].DirPath)
 	}
-	statChan <- &Stat{MsgType: msgTypeEnd}
-	log.Printf("lv=info component=stat msg=\"full end stat task\"\n")
+	st.statChan <- &StatInfo{MsgType: msgTypeEnd}
+	// log.Printf("lv=info component=stat msg=\"full end stat task\"\n")
 }
 
-func statDir(statDir *config.StatDir) error {
+func (st *Stat) statDir(statDir *config.StatDir) error {
 	entries, err := dirinfo.ScanMotherDir(statDir.DirPath)
 	if err != nil {
 		return fmt.Errorf("failed to scan statDir %v err %v", statDir, err)
 	}
 	for _, entry := range entries {
-		err = statEntry(statDir, entry)
+		err = st.statEntry(statDir, entry)
 		if err != nil {
-			log.Printf("lv=error component=stat statDir %v msg=\"%v\"\n", statDir, err)
+			// log.Printf("lv=error component=stat statDir %v msg=\"%v\"\n", statDir, err)
 			continue
 		}
 	}
 	return nil
 }
 
-func statEntry(statDir *config.StatDir, entry *dirinfo.Entry) error {
+func (st *Stat) statEntry(statDir *config.StatDir, entry *dirinfo.Entry) error {
 	// log.Printf("lv=info component=stat msg=\"stat entry\" entry=%+v\n", entry)
 	if entry.Type == dirinfo.FileEntry {
-		statChan <- &Stat{Entry: entry, Lasterr: fmt.Errorf("entry is a file")}
+		st.statChan <- &StatInfo{Entry: entry, Lasterr: fmt.Errorf("entry is a file")}
 		return nil
 	}
 	switch statDir.MediaType {
 	case config.MediaTypeTv:
-		return statTvEntry(entry)
+		return st.statTvEntry(entry)
 	case config.MediaTypeMovie:
-		return statMovieEntry(entry)
+		return st.statMovieEntry(entry)
 	default:
 		// default is allowed, do nothing
 	}
 	return nil
 }
 
-func statTvEntry(entry *dirinfo.Entry) error {
-	stat := &Stat{
+func (st *Stat) statTvEntry(entry *dirinfo.Entry) error {
+	stInfo := &StatInfo{
 		MsgType: msgTypeStat,
 		Entry:   entry,
 		MediaTp: mediaTypeTv,
 	}
 	tmdbid := getTmdbidFromEntry(entry)
 	if tmdbid <= 0 {
-		stat.Lasterr = fmt.Errorf("tvshow tmdbid is not recognized")
-		statChan <- stat
+		stInfo.Lasterr = fmt.Errorf("tvshow tmdbid is not recognized")
+		st.statChan <- stInfo
 		return nil
 	}
-	stat.Tmdbid = tmdbid
+	stInfo.Tmdbid = tmdbid
 	tvshowStat := &TvshowStat{}
-	stat.TvshowStat = tvshowStat
-	statChan <- stat
+	stInfo.TvshowStat = tvshowStat
+	st.statChan <- stInfo
 	return nil
 }
 
-func statMovieEntry(entry *dirinfo.Entry) error {
-	stat := &Stat{
+func (st *Stat) statMovieEntry(entry *dirinfo.Entry) error {
+	stInfo := &StatInfo{
 		MsgType: msgTypeStat,
 		Entry:   entry,
 		MediaTp: mediaTypeMovie,
 	}
 	tmdbid := getTmdbidFromEntry(entry)
 	if tmdbid <= 0 {
-		stat.Lasterr = fmt.Errorf("movie tmdbid is not recognized")
-		statChan <- stat
+		stInfo.Lasterr = fmt.Errorf("movie tmdbid is not recognized")
+		st.statChan <- stInfo
 		return nil
 	}
-	stat.Tmdbid = tmdbid
+	stInfo.Tmdbid = tmdbid
 	movieStat := &MovieStat{}
-	stat.MovieStat = movieStat
+	stInfo.MovieStat = movieStat
 	for _, aFile := range entry.FileList {
-		stat.TotalSize += aFile.BytesNum
+		stInfo.TotalSize += aFile.BytesNum
 		if utils.IsSubtitleExt(aFile.Ext) {
 			movieStat.SubtitleFileNum++
 		} else if utils.IsMediaExt(aFile.Ext) {
@@ -156,7 +190,7 @@ func statMovieEntry(entry *dirinfo.Entry) error {
 			}
 		}
 	}
-	statChan <- stat
+	st.statChan <- stInfo
 	return nil
 }
 
@@ -177,67 +211,67 @@ func getTmdbidFromEntry(entry *dirinfo.Entry) int64 {
 	return n
 }
 
-func reporterTask() {
-	log.Printf("lv=debug component=stat msg=\"start reporter task\"\n")
+func (st *Stat) reporterTask() {
+	// log.Printf("lv=debug component=stat msg=\"start reporter task\"\n")
 	rpt := reporter
-	for stat := range statChan {
-		switch stat.MsgType {
+	for stInfo := range st.statChan {
+		switch stInfo.MsgType {
 		case msgTypeStart:
-			rpt.reset()
+			rpt.reset(st, stInfo)
 		case msgTypeStat:
-			rpt.gather(stat)
+			rpt.gather(st, stInfo)
 		case msgTypeEnd:
-			rpt.report()
+			rpt.report(st)
 		}
 	}
 }
 
 type statReporter struct {
-	movies         map[int64][]Stat
-	tvshows        map[int64][]Stat
+	movies         map[int64][]StatInfo
+	tvshows        map[int64][]StatInfo
 	movieCheckers  []StatChecker
 	tvshowCheckers []StatChecker
 }
 
 type StatChecker interface {
-	Check(tmdbid int64, st []Stat) error
+	Check(tmdbid int64, stInfoSlice []StatInfo) error
 }
 
-func (r *statReporter) reset() {
-	log.Printf("lv=info component=stat msg=\"reset reporter\"\n")
-	r.movies = make(map[int64][]Stat)
-	r.tvshows = make(map[int64][]Stat)
+func (r *statReporter) reset(st *Stat, stInfo *StatInfo) {
+	level.Info(st.logger).Log("msg", "reset reporter")
+	r.movies = make(map[int64][]StatInfo)
+	r.tvshows = make(map[int64][]StatInfo)
 }
 
-func (r *statReporter) gather(stat *Stat) {
-	// log.Printf("lv=info component=report msg=\"reporter gathter\" stat=%+v\n", stat)
-	if stat.Lasterr != nil {
-		log.Printf("lv=error component=report msg=\"stat has error\" stat=%+v err=%v\n", stat, stat.Lasterr)
+func (r *statReporter) gather(st *Stat, stInfo *StatInfo) {
+	level.Debug(st.logger).Log("msg", "reporter gather", "stat", st)
+	if stInfo.Lasterr != nil {
+		level.Error(st.logger).Log("msg", "stat has error", "err", stInfo.Lasterr)
 		return
 	}
-	switch stat.MediaTp {
+	switch stInfo.MediaTp {
 	case mediaTypeTv:
 		// log.Printf("lv=info component=report mediaType=%d stat=%+v\n", stat.MediaTp, stat)
-		stats := r.tvshows[stat.Tmdbid]
-		stats = append(stats, *stat)
-		r.tvshows[stat.Tmdbid] = stats
+		stats := r.tvshows[stInfo.Tmdbid]
+		stats = append(stats, *stInfo)
+		r.tvshows[stInfo.Tmdbid] = stats
 	case mediaTypeMovie:
 		// log.Printf("lv=info component=report mediaType=%d stat=%+v\n", stat.MediaTp, stat)
-		stats := r.movies[stat.Tmdbid]
-		stats = append(stats, *stat)
-		r.movies[stat.Tmdbid] = stats
+		stats := r.movies[stInfo.Tmdbid]
+		stats = append(stats, *stInfo)
+		r.movies[stInfo.Tmdbid] = stats
 	default:
-		log.Printf("lv=error component=report msg=\"unknown media type\", mediaType=%d stat=%+v\n", stat.MediaTp, stat)
+		// log.Printf("lv=error component=report msg=\"unknown media type\", mediaType=%d stat=%+v\n", st.MediaTp, st)
 	}
 }
 
-func (r *statReporter) report() {
-	log.Printf("lv=info component=stat msg=\"reporter report start\"\n")
+func (r *statReporter) report(st *Stat) {
+	level.Info(st.logger).Log("msg", "reporter report start")
 	for _, checker := range r.movieCheckers {
 		for tmdbid, stats := range r.movies {
 			err := checker.Check(tmdbid, stats)
 			if err != nil {
-				log.Printf("lv=error component=stat msg=\"movie checker failed\" err=%v\n", err)
+				level.Warn(st.logger).Log("msg", "movie checker failed", "err", err)
 			}
 		}
 	}
@@ -245,31 +279,14 @@ func (r *statReporter) report() {
 		for tmdbid, stats := range r.tvshows {
 			err := checker.Check(tmdbid, stats)
 			if err != nil {
-				log.Printf("lv=error component=stat  msg=\"tvshow checker failed\" err=%v\n", err)
+				level.Error(st.logger).Log("msg", "tvshow checker failed", "err", err)
 			}
 		}
 	}
-	log.Printf("lv=info component=stat msg=\"reporter report end\"\n")
-}
-
-func RunStat(c *config.Configuration) {
-	if c == nil {
-		printAndDie("config is nil")
-	}
-	conf = c
-	log.Printf("lv=info component=stat msg=\"starting stat\" spec=%s\n", cronConf)
-	go statTask()
-	// myCron := cron.New(cron.WithSeconds())
-	// _, err := myCron.AddFunc(cronConf, statTask)
-	// if err != nil {
-	// 	printAndDie(fmt.Sprintf("error adding cron job: %v", err))
-	// }
-	// myCron.Start()
-	go reporterTask()
-	select {}
+	level.Info(st.logger).Log("msg", "reporter report end")
 }
 
 func printAndDie(msg string) {
-	log.Printf("lv=fatal component=stat msg=\"%s\"\n", msg)
+	// log.Printf("lv=fatal component=stat msg=\"%s\"\n", msg)
 	os.Exit(1)
 }

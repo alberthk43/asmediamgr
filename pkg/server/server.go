@@ -12,8 +12,11 @@ import (
 	"sync"
 	"time"
 
+	"github.com/go-kit/log"
+	"github.com/go-kit/log/level"
 	"github.com/prometheus/client_golang/prometheus/promhttp"
 
+	"asmediamgr/pkg/common/aslog"
 	"asmediamgr/pkg/config"
 	"asmediamgr/pkg/dirinfo"
 	"asmediamgr/pkg/diskop"
@@ -70,8 +73,22 @@ func Run(s *ParserServer) error {
 	s.runProMetrics()
 	s.runMotherDirs()
 
-	// run reporter
-	go stat.RunStat(s.conf)
+	// logger
+	aslogConfig := &aslog.Config{
+		Level: &aslog.AllowedLevel{
+			LevelOpt: level.AllowInfo(),
+		},
+		Format: &aslog.AllowedFormat{},
+	}
+	logger := aslog.New(aslogConfig)
+
+	// new stat service
+	stOpts := &stat.StatOpts{
+		Logger: log.With(logger, "component", "stat"),
+		Config: s.conf,
+	}
+	st := stat.NewStat(stOpts)
+	go stat.RunStat(st)
 
 	return nil
 }

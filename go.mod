@@ -5,8 +5,8 @@ go 1.18
 require (
 	github.com/BurntSushi/toml v1.3.2
 	github.com/cyruzin/golang-tmdb v1.5.6
+	github.com/go-kit/log v0.2.1
 	github.com/prometheus/client_golang v1.18.0
-	github.com/robfig/cron/v3 v3.0.1
 	golang.org/x/net v0.19.0
 	golang.org/x/text v0.14.0
 )
@@ -14,6 +14,7 @@ require (
 require (
 	github.com/beorn7/perks v1.0.1 // indirect
 	github.com/cespare/xxhash/v2 v2.2.0 // indirect
+	github.com/go-logfmt/logfmt v0.5.1 // indirect
 	github.com/json-iterator/go v1.1.12 // indirect
 	github.com/matttproud/golang_protobuf_extensions/v2 v2.0.0 // indirect
 	github.com/modern-go/concurrent v0.0.0-20180306012644-bacd9c7ef1dd // indirect

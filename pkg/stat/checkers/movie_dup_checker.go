@@ -9,14 +9,14 @@ import (
 
 type MovieDirDupChecker struct{}
 
-func (c *MovieDirDupChecker) Check(tmdbid int64, stats []stat.Stat) error {
+func (c *MovieDirDupChecker) Check(tmdbid int64, stInfoSlice []stat.StatInfo) error {
 	dirs := ""
 	totalMovieFileNum := 0
-	for _, s := range stats {
+	for _, s := range stInfoSlice {
 		dirs += fmt.Sprintf("\"%s\" ", filepath.ToSlash(filepath.Join(s.Entry.MotherPath, s.Entry.MyDirPath)))
 		totalMovieFileNum += s.MovieStat.MovieFileNum
 	}
-	if len(stats) > 1 {
+	if len(stInfoSlice) > 1 {
 		return fmt.Errorf("found duplicate movie entry for tmdbid %d dirs %s", tmdbid, dirs)
 	}
 	if totalMovieFileNum > 1 {
