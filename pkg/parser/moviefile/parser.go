@@ -2,7 +2,6 @@ package moviefile
 
 import (
 	"fmt"
-	"log/slog"
 	"regexp"
 	"strconv"
 
@@ -70,11 +69,11 @@ func (p *MovieFileParser) Parse(entry *dirinfo.Entry) error {
 	tmdbid = int(tmdbMovieDetail.ID)
 
 	// logging
-	slog.Info(fmt.Sprintf("%s parser succ", templateName),
-		slog.Int("tmdbid", int(tmdbid)),
-		slog.String("originalName", tmdbMovieDetail.OriginalTitle),
-		slog.String("airDate", tmdbMovieDetail.ReleaseDate),
-	)
+	// slog.Info(fmt.Sprintf("%s parser succ", templateName),
+	// 	slog.Int("tmdbid", int(tmdbid)),
+	// 	slog.String("originalName", tmdbMovieDetail.OriginalTitle),
+	// 	slog.String("airDate", tmdbMovieDetail.ReleaseDate),
+	// )
 
 	// perform disk operations
 	err = p.distOpService.RenameSingleMovieFile(entry, file, tmdbMovieDetail, diskop.OnAirMovie)

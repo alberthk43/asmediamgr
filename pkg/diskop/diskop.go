@@ -2,7 +2,6 @@ package diskop
 
 import (
 	"fmt"
-	"log/slog"
 	"os"
 	"path/filepath"
 	"strings"
@@ -60,7 +59,7 @@ func (dop *DiskOpService) RenameSingleTvEpFile(entry *dirinfo.Entry, old *dirinf
 	if err != nil {
 		return fmt.Errorf("failed to create dir: %v", err)
 	}
-	slog.Info("succ to rename single tv episode file", slog.String("old", oldPath), slog.String("new", newPath))
+	// slog.Info("succ to rename single tv episode file", slog.String("old", oldPath), slog.String("new", newPath))
 	return nil
 }
 
@@ -134,7 +133,7 @@ func (dop *DiskOpService) RenameSingleMovieFile(entry *dirinfo.Entry, old *dirin
 	if err != nil {
 		return fmt.Errorf("failed to create dir: %v", err)
 	}
-	slog.Info("succ to rename single movie file", slog.String("old", oldPath), slog.String("new", newPath))
+	// slog.Info("succ to rename single movie file", slog.String("old", oldPath), slog.String("new", newPath))
 	return nil
 }
 
@@ -195,7 +194,7 @@ func (dop *DiskOpService) renameOneMovieSubtile(entry *dirinfo.Entry, file *diri
 	if err != nil {
 		return fmt.Errorf("failed to create dir: %v", err)
 	}
-	slog.Info("succ to rename movie subtitle file", slog.String("old", oldPath), slog.String("new", newPath))
+	// slog.Info("succ to rename movie subtitle file", slog.String("old", oldPath), slog.String("new", newPath))
 	return nil
 }
 
@@ -251,6 +250,6 @@ func (dop *DiskOpService) RenameTvMusicFile(entry *dirinfo.Entry, old *dirinfo.F
 	if err != nil {
 		return fmt.Errorf("failed to create dir: %v", err)
 	}
-	slog.Info("succ to rename single tv episode file", slog.String("old", oldPath), slog.String("new", newPath))
+	// slog.Info("succ to rename single tv episode file", slog.String("old", oldPath), slog.String("new", newPath))
 	return nil
 }

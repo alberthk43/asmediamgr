@@ -2,7 +2,6 @@ package ytsmoviedir
 
 import (
 	"fmt"
-	"log/slog"
 	"regexp"
 	"strconv"
 	"strings"
@@ -86,18 +85,18 @@ func (p *YtsMovieDirParser) Parse(entry *dirinfo.Entry) error {
 			return fmt.Errorf("failed to get search movies: %v", err)
 		}
 		if len(tmdbSearchMovies.Results) == 0 {
-			slog.Info(fmt.Sprintf("%s fail to search tmdb movie by name", templateName),
-				slog.String("name", r.name),
-				slog.Int("year", r.year),
-			)
+			// slog.Info(fmt.Sprintf("%s fail to search tmdb movie by name", templateName),
+			// 	slog.String("name", r.name),
+			// 	slog.Int("year", r.year),
+			// )
 			return fmt.Errorf("failed to match tmdbid")
 		}
 		if len(tmdbSearchMovies.Results) > 1 {
-			slog.Info(fmt.Sprintf("%s fail to unique search tmdb movie by name", templateName),
-				slog.String("name", r.name),
-				slog.Int("year", r.year),
-				slog.Int("candidates", len(tmdbSearchMovies.Results)),
-			)
+			// slog.Info(fmt.Sprintf("%s fail to unique search tmdb movie by name", templateName),
+			// 	slog.String("name", r.name),
+			// 	slog.Int("year", r.year),
+			// 	slog.Int("candidates", len(tmdbSearchMovies.Results)),
+			// )
 			return fmt.Errorf("more than one movie matched")
 		}
 		tmdbid = int(tmdbSearchMovies.Results[0].ID)
@@ -111,11 +110,11 @@ func (p *YtsMovieDirParser) Parse(entry *dirinfo.Entry) error {
 	tmdbid = int(tmdbMovieDetail.ID)
 
 	// logging
-	slog.Info(fmt.Sprintf("%s parser succ", templateName),
-		slog.Int("tmdbid", int(tmdbid)),
-		slog.String("originalTitle", tmdbMovieDetail.OriginalTitle),
-		slog.String("airDate", tmdbMovieDetail.ReleaseDate),
-	)
+	// slog.Info(fmt.Sprintf("%s parser succ", templateName),
+	// 	slog.Int("tmdbid", int(tmdbid)),
+	// 	slog.String("originalTitle", tmdbMovieDetail.OriginalTitle),
+	// 	slog.String("airDate", tmdbMovieDetail.ReleaseDate),
+	// )
 
 	// perform disk operations
 	err = p.distOpService.RenameSingleMovieFile(entry, mediaFile, tmdbMovieDetail, diskop.OnAirMovie)

@@ -2,7 +2,6 @@ package server
 
 import (
 	"fmt"
-	"log/slog"
 	"math"
 	"net/http"
 	"os"
@@ -16,7 +15,6 @@ import (
 	"github.com/go-kit/log/level"
 	"github.com/prometheus/client_golang/prometheus/promhttp"
 
-	"asmediamgr/pkg/common/aslog"
 	"asmediamgr/pkg/config"
 	"asmediamgr/pkg/dirinfo"
 	"asmediamgr/pkg/diskop"
@@ -28,7 +26,7 @@ import (
 )
 
 func PrintAndDie(msg string) {
-	slog.Error(msg)
+	fmt.Fprintf(os.Stderr, "%s\n", msg)
 	os.Exit(1)
 }
 
@@ -43,13 +41,18 @@ type ParserServer struct {
 	shutdownComplete chan struct{}
 	wg               sync.WaitGroup
 	parsersInfo      []parserInfo
+	logger           log.Logger
 }
 
-func NewParserServer(conf *config.Configuration) (*ParserServer, error) {
+func NewParserServer(conf *config.Configuration, logger log.Logger) (*ParserServer, error) {
+	if logger == nil {
+		logger = log.NewNopLogger()
+	}
 	return &ParserServer{
 		conf:             conf,
 		doneCh:           make(chan struct{}),
 		shutdownComplete: make(chan struct{}),
+		logger:           logger,
 	}, nil
 }
 
@@ -73,18 +76,9 @@ func Run(s *ParserServer) error {
 	s.runProMetrics()
 	s.runMotherDirs()
 
-	// logger
-	aslogConfig := &aslog.Config{
-		Level: &aslog.AllowedLevel{
-			LevelOpt: level.AllowInfo(),
-		},
-		Format: &aslog.AllowedFormat{},
-	}
-	logger := aslog.New(aslogConfig)
-
 	// new stat service
 	stOpts := &stat.StatOpts{
-		Logger: log.With(logger, "component", "stat"),
+		Logger: log.With(s.logger, "component", "stat"),
 		Config: s.conf,
 	}
 	st := stat.NewStat(stOpts)
@@ -111,8 +105,8 @@ func (s *ParserServer) runMotherDir(motherDir config.MontherDir) {
 	defer s.wg.Done()
 	prometric.CurMontherDirAdd()
 	defer prometric.CurMontherDirDec()
-	defer slog.Info("end mother dir loop", slog.String("dir_path", motherDir.DirPath))
-	slog.Info("start mother dir loop", slog.String("dir_path", motherDir.DirPath))
+	defer level.Info(s.logger).Log("msg", "end mother dir loop", "dir_path", motherDir.DirPath)
+	level.Info(s.logger).Log("msg", "start mother dir loop", "dir_path", motherDir.DirPath)
 	retryConMap := make(map[string]*retryControl)
 	ticker := time.NewTicker(motherDir.SleepInterval)
 	defer ticker.Stop()
@@ -135,11 +129,11 @@ type retryControl struct {
 
 // runWithMotherDir impls with repeated error protection, 2**n try interval and retry
 func (s *ParserServer) runWithMotherDir(motherDir config.MontherDir, retryConMap map[string]*retryControl) {
-	slog.Info("mother dir run", slog.String("dir_path", motherDir.DirPath))
+	level.Debug(s.logger).Log("msg", "mother dir run", "dir_path", motherDir.DirPath)
 	prometric.LoopMontherDirInc()
 	entries, err := dirinfo.ScanMotherDir(motherDir.DirPath)
 	if err != nil {
-		slog.Error("failed to scan mother dir", slog.String("dir_path", motherDir.DirPath), slog.String("err", err.Error()))
+		level.Error(s.logger).Log("msg", "failed to scan mother dir", "dir_path", motherDir.DirPath, "err", err)
 		return
 	}
 	for _, retryCon := range retryConMap {
@@ -167,7 +161,7 @@ func (s *ParserServer) runWithMotherDir(motherDir config.MontherDir, retryConMap
 		name := getEntrySpecificName(entry)
 		retryCon, ok := retryConMap[name]
 		if !ok {
-			slog.Error("entry map not found", slog.String("dir_path", motherDir.DirPath))
+			level.Error(s.logger).Log("msg", "entry map not found", "dir_path", motherDir.DirPath)
 			return
 		}
 		var err error
@@ -179,10 +173,7 @@ func (s *ParserServer) runWithMotherDir(motherDir config.MontherDir, retryConMap
 		nextTime := nextRetryTime(retryCon.n, now)
 		retryCon.nextTime = nextTime
 		if err != nil {
-			slog.Info("failed to parse entry", slog.String("entry", name),
-				slog.String("err", err.Error()),
-				slog.String("next_time", nextTime.String()),
-			)
+			level.Info(s.logger).Log("msg", "failed to parse entry", "entry", name, "err", err.Error(), "next_time", nextTime.String())
 		}
 	}
 }
@@ -216,9 +207,9 @@ func (s *ParserServer) runWithEntry(entry *dirinfo.Entry) error {
 		prometric.ParserInc()
 		prometric.TemplateParserInc(parserInfo.template)
 		if err := parserInfo.parser.Parse(entry); err != nil {
-			slog.Info("failed to parse entry", slog.String("parser", parserInfo.info()), slog.String("entry", name), slog.String("err", err.Error()))
+			level.Info(s.logger).Log("msg", "failed to parse entry", "parser", parserInfo.info(), "entry", name, "err", err.Error())
 		} else {
-			slog.Info("succ to parse entry", slog.String("parser", parserInfo.info()), slog.String("entry", name))
+			level.Info(s.logger).Log("msg", "succ to parse entry", "parser", parserInfo.info(), "entry", name)
 			prometric.ParserSuccInc()
 			return nil
 		}
@@ -312,7 +303,7 @@ func (s *ParserServer) initParsers(namedServices *namedServices) ([]parserInfo, 
 			parser:   parser,
 			priority: parser.Priority(),
 		})
-		slog.Info("add parsers", slog.String("name", parserName), slog.String("template", templateName))
+		level.Info(s.logger).Log("msg", "add parsers", "name", parserName, "template", templateName)
 	}
 	return parsersInfo, nil
 }

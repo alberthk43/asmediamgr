@@ -2,7 +2,6 @@ package aniteam
 
 import (
 	"fmt"
-	"log/slog"
 	"regexp"
 	"strconv"
 	"strings"
@@ -102,13 +101,13 @@ func (p *AniTeamParser) Parse(entry *dirinfo.Entry) error {
 	tmdbid = int(tmdbTvDetail.ID)
 
 	// logging
-	slog.Info(fmt.Sprintf("%s parser succ", templateName),
-		slog.Int("tmdbid", int(tmdbid)),
-		slog.String("originalName", tmdbTvDetail.OriginalName),
-		slog.String("airDate", tmdbTvDetail.FirstAirDate),
-		slog.Int("seasonNum", seasonnum),
-		slog.Int("epNum", epnum),
-	)
+	// slog.Info(fmt.Sprintf("%s parser succ", templateName),
+	// 	slog.Int("tmdbid", int(tmdbid)),
+	// 	slog.String("originalName", tmdbTvDetail.OriginalName),
+	// 	slog.String("airDate", tmdbTvDetail.FirstAirDate),
+	// 	slog.Int("seasonNum", seasonnum),
+	// 	slog.Int("epNum", epnum),
+	// )
 
 	// perform disk operations
 	err = p.distOpService.RenameSingleTvEpFile(entry, file, tmdbTvDetail, seasonnum, epnum, diskop.OnAirTv)

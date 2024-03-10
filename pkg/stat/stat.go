@@ -15,9 +15,9 @@ import (
 	"asmediamgr/pkg/utils"
 )
 
-const (
-	cronConf = "*/5 * * * * *"
-)
+// const (
+// 	cronConf = "*/5 * * * * *"
+// )
 
 var (
 	reporter = &statReporter{}

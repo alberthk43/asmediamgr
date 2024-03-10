@@ -2,7 +2,7 @@ package gmteam
 
 import (
 	"fmt"
-	"log/slog"
+	// "log/slog"
 	"regexp"
 	"strconv"
 
@@ -101,13 +101,13 @@ func (p *GmTeamParser) Parse(entry *dirinfo.Entry) error {
 	tmdbid = int(tmdbTvDetail.ID)
 
 	// logging
-	slog.Info("aniteam parser succ",
-		slog.Int("tmdbid", int(tmdbid)),
-		slog.String("originalName", tmdbTvDetail.OriginalName),
-		slog.String("airDate", tmdbTvDetail.FirstAirDate),
-		slog.Int("seasonNum", seasonnum),
-		slog.Int("epNum", epnum),
-	)
+	// slog.Info("aniteam parser succ",
+	// 	slog.Int("tmdbid", int(tmdbid)),
+	// 	slog.String("originalName", tmdbTvDetail.OriginalName),
+	// 	slog.String("airDate", tmdbTvDetail.FirstAirDate),
+	// 	slog.Int("seasonNum", seasonnum),
+	// 	slog.Int("epNum", epnum),
+	// )
 
 	// perform disk operations
 	err = p.distOpService.RenameSingleTvEpFile(entry, file, tmdbTvDetail, seasonnum, epnum, diskop.OnAirTv)

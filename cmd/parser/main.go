@@ -10,25 +10,31 @@ import (
 	"asmediamgr/pkg/common/aslog"
 	"asmediamgr/pkg/config"
 	"asmediamgr/pkg/server"
+
+	"github.com/go-kit/log/level"
 )
 
 const (
 	mainFilePath = "/cmd/parser/main.go"
 )
 
-type flagConfig struct {
-	aslogConfig *aslog.Config
-}
+// type flagConfig struct {
+// 	aslogConfig *aslog.Config
+// }
 
 func main() {
-
-	// cfg := flagConfig{
-	// 	aslogConfig: &aslog.Config{},
-	// }
-
-	// logger := aslog.New(cfg.aslogConfig)
-
 	flag.Parse()
+
+	// some preparation
+	aslogConfig := &aslog.Config{
+		Level: &aslog.AllowedLevel{
+			LevelOpt: level.AllowInfo(),
+		},
+		Format: &aslog.AllowedFormat{},
+	}
+	logger := aslog.New(aslogConfig)
+
+	// run program
 	if err := asmediamgr.PrepareLog(mainFilePath); err != nil {
 		fmt.Printf("Failed to prepare logging: %s\n", err)
 		os.Exit(1)
@@ -37,7 +43,7 @@ func main() {
 	if err != nil {
 		server.PrintAndDie(fmt.Sprintf("Failed to load config: %v", err))
 	}
-	s, err := server.NewParserServer(c)
+	s, err := server.NewParserServer(c, logger)
 	if err != nil {
 		server.PrintAndDie(fmt.Sprintf("Failed to initialize server: %v", err))
 	}

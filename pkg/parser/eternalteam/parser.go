@@ -2,7 +2,6 @@ package eternalteam
 
 import (
 	"fmt"
-	"log/slog"
 	"regexp"
 	"strconv"
 
@@ -90,13 +89,13 @@ func (p *EternalTeamParser) Parse(entry *dirinfo.Entry) error {
 	}
 
 	// logging
-	slog.Info(fmt.Sprintf("%s parser succ", templateName),
-		slog.Int("tmdbid", int(tmdbid)),
-		slog.String("originalName", detail.OriginalName),
-		slog.String("airDate", detail.FirstAirDate),
-		slog.Int("seasonNum", seasonnum),
-		slog.Int("epNum", epnum),
-	)
+	// slog.Info(fmt.Sprintf("%s parser succ", templateName),
+	// 	slog.Int("tmdbid", int(tmdbid)),
+	// 	slog.String("originalName", detail.OriginalName),
+	// 	slog.String("airDate", detail.FirstAirDate),
+	// 	slog.Int("seasonNum", seasonnum),
+	// 	slog.Int("epNum", epnum),
+	// )
 
 	// perform disk operations
 	err = p.distOpService.RenameSingleTvEpFile(entry, file, detail, seasonnum, epnum, diskop.OnAirTv)
