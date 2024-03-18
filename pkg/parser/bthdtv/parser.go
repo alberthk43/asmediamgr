@@ -217,9 +217,6 @@ func (p *BtHdtvParser) regexMatchDirName(entry *dirinfo.Entry) (info *dirMatchIn
 	}
 	info.year = int(n)
 	groups = seasonPattern.FindStringSubmatch(entry.MyDirPath)
-	if err != nil {
-		return nil, fmt.Errorf("failed to regex match season")
-	}
 	n, err = strconv.ParseInt(groups[1], 10, 31)
 	if err != nil {
 		return nil, fmt.Errorf("failed to convert season: %v", groups[1])
