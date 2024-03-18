@@ -15,7 +15,7 @@ var (
 		ID:           123456789,
 	}
 	fakeTmdbService = fakes.NewFakeTmdbService(
-		fakes.WithTvQueryMapping("Some Name", &tmdb.SearchTVShows{
+		fakes.WithTvQueryMapping("中文名", &tmdb.SearchTVShows{
 			Page:         1,
 			TotalResults: 1,
 			TotalPages:   1,

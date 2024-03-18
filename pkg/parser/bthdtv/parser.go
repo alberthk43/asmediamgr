@@ -8,7 +8,6 @@ import (
 	"fmt"
 	"regexp"
 	"strconv"
-	"strings"
 )
 
 type BtHdtvParser struct {
@@ -21,14 +20,29 @@ func (p *BtHdtvParser) Parse(entry *dirinfo.Entry) error {
 	if entry.Type != dirinfo.DirEntry {
 		return fmt.Errorf("entry is not a dir entry")
 	}
-
-	// try match with dir name pattern
-	name, err := regexMatchDirName(entry)
+	tmdbid, err := p.regexMatchTvTmdbid(entry)
 	if err != nil {
-		_, err := regexMatchTmdbId(entry)
+		info, err := p.regexMatchDirName(entry)
 		if err != nil {
-			return fmt.Errorf("failed to regex match tmdbid: %v", err)
+			return fmt.Errorf("failed to regex match dir name: %v", err)
 		}
+		options := defaultUrlOptions
+		options["year"] = fmt.Sprintf("%d", info.year)
+		shows, err := p.tmdbService.GetSearchTVShow(info.name, options)
+		if err != nil {
+			return fmt.Errorf("failed to get search tv show: %v", err)
+		}
+		if shows.TotalResults == 0 {
+			return fmt.Errorf("failed to get search tv show: no result")
+		}
+		if shows.TotalResults > 1 {
+			return fmt.Errorf("failed to get search tv show: more than one result")
+		}
+		tmdbid = int(shows.Results[0].ID)
+	}
+	detail, err := p.tmdbService.GetTVDetails(tmdbid, defaultUrlOptions)
+	if err != nil {
+		return fmt.Errorf("failed to get tv detail: %v", err)
 	}
 
 	// classify files
@@ -40,33 +54,6 @@ func (p *BtHdtvParser) Parse(entry *dirinfo.Entry) error {
 	// check unknown file list is zero len
 	if len(classified[unknown]) != 0 {
 		return fmt.Errorf("unknown file list is not zero len")
-	}
-
-	// try tmdbid pattern
-	tmdbid, err := regexMatchTmdbId(entry)
-	if err != nil {
-		searchRets, err := p.tmdbService.GetSearchTVShow(name, defaultUrlOptions)
-		if err != nil {
-			return fmt.Errorf("failed to get search tv show: %v", err)
-		}
-		if len(searchRets.Results) == 0 {
-			return fmt.Errorf("failed to match tmdbid")
-		}
-		if len(searchRets.Results) > 1 {
-			return fmt.Errorf("too many search results")
-		}
-		tmdbid = int(searchRets.Results[0].ID)
-	}
-
-	// check again
-	if tmdbid <= 0 {
-		return fmt.Errorf("failed to match tmdbid")
-	}
-
-	// get tv detail
-	detail, err := p.tmdbService.GetTVDetails(tmdbid, defaultUrlOptions)
-	if err != nil {
-		return fmt.Errorf("failed to get tv detail: %v", err)
 	}
 
 	// episode file op
@@ -91,22 +78,6 @@ var (
 		"include_adult": "true",
 	}
 )
-
-var (
-	regexTmdbId = regexp.MustCompile(`tv tmdbid-(?P<tmdbid>\d+)`)
-)
-
-func regexMatchTmdbId(entry *dirinfo.Entry) (int, error) {
-	match := regexTmdbId.FindStringSubmatch(entry.MyDirPath)
-	if match == nil {
-		return -1, fmt.Errorf("failed to regex match tmdbid")
-	}
-	tmdbid, err := strconv.Atoi(match[1])
-	if err != nil {
-		return -1, fmt.Errorf("failed to convert tmdbid: %v", err)
-	}
-	return tmdbid, nil
-}
 
 type fileType int
 
@@ -181,25 +152,98 @@ func regexMatchEpisodeFile(file *dirinfo.File) (season int, ep int, err error) {
 }
 
 var (
-	regexDirName  = regexp.MustCompile(`BTHDTV\.com.*\]\.(?P<name>.*)\.(?P<year>\d{4})\.S(?P<season>\d+)`)
-	regexDirName2 = regexp.MustCompile(`DDHDTV\.com.*\]\.(?P<name>.*)\.S(?P<season>\d+)\.(?P<year>\d{4})`)
+	tmdbidPattern       = regexp.MustCompile(`tv tmdbid-(\d+)$`)
+	dirNamePatternSlice = []*regexp.Regexp{
+		regexp.MustCompile(`BTHDTV\.com.*】(?P<name>.*)\[全(\d+)集\]`),
+		regexp.MustCompile(`DDHDTV\.com.*】(?P<name>.*)\[全(\d+)集\]`),
+	}
+	yearPattern          = regexp.MustCompile(`\.(\d{4})\.`)
+	seasonPattern        = regexp.MustCompile(`\.S(\d+)\.`)
+	seasonChinesePattern = regexp.MustCompile(`(?P<newname>.*) 第(?P<seasonname>.*)季`)
 )
 
-func regexMatchDirName(entry *dirinfo.Entry) (name string, err error) {
-	if entry.Type != dirinfo.DirEntry {
-		return "", fmt.Errorf("entry is not a dir entry")
+func removeChineseSeasonInName(name string) (newName string) {
+	newName = name
+	groups := seasonChinesePattern.FindStringSubmatch(name)
+	if len(groups) == 3 {
+		newName = groups[1]
 	}
-	match := regexDirName.FindStringSubmatch(entry.MyDirPath)
-	if match == nil {
-		match = regexDirName2.FindStringSubmatch(entry.MyDirPath)
-		if match == nil {
-			return "", fmt.Errorf("failed to regex match dir name")
+	return
+}
+
+func (p *BtHdtvParser) regexMatchDirName(entry *dirinfo.Entry) (info *dirMatchInfo, err error) {
+	for _, pattern := range dirNamePatternSlice {
+		info = &dirMatchInfo{}
+		groups := pattern.FindStringSubmatch(entry.MyDirPath)
+		if len(groups) == 0 {
+			continue
+		}
+		subPattern := pattern.SubexpNames()
+		for i, patternName := range subPattern {
+			switch patternName {
+			case "name":
+				info.name = groups[i]
+			case "season":
+				n, err := strconv.ParseInt(groups[i], 10, 31)
+				if err != nil {
+					return nil, fmt.Errorf("failed to convert season num: %v, %s", err, groups[i])
+				}
+				info.season = int(n)
+			case "year":
+				n, err := strconv.ParseInt(groups[i], 10, 31)
+				if err != nil {
+					return nil, fmt.Errorf("failed to convert year: %v, %s", err, groups[i])
+				}
+				info.year = int(n)
+			}
+		}
+		if info.name != "" {
+			break
 		}
 	}
-	name = match[1]
-	if err != nil {
-		return "", fmt.Errorf("failed to convert season num: %v", err)
+	if info == nil {
+		return nil, fmt.Errorf("failed to regex match dir name")
 	}
-	name = strings.ReplaceAll(name, ".", " ")
-	return name, nil
+	if info.name == "" {
+		return nil, fmt.Errorf("failed to regex match dir name")
+	}
+	groups := yearPattern.FindStringSubmatch(entry.MyDirPath)
+	if len(groups) != 2 {
+		return nil, fmt.Errorf("failed to regex match year")
+	}
+	n, err := strconv.ParseInt(groups[1], 10, 31)
+	if err != nil {
+		return nil, fmt.Errorf("failed to convert year: %v", groups[1])
+	}
+	info.year = int(n)
+	groups = seasonPattern.FindStringSubmatch(entry.MyDirPath)
+	if err != nil {
+		return nil, fmt.Errorf("failed to regex match season")
+	}
+	n, err = strconv.ParseInt(groups[1], 10, 31)
+	if err != nil {
+		return nil, fmt.Errorf("failed to convert season: %v", groups[1])
+	}
+	info.season = int(n)
+	info.name = removeChineseSeasonInName(info.name)
+	return info, nil
+}
+
+func (p *BtHdtvParser) regexMatchTvTmdbid(entry *dirinfo.Entry) (tmdbid int, err error) {
+	groups := tmdbidPattern.FindStringSubmatch(entry.MyDirPath)
+	if len(groups) != 2 {
+		return 0, fmt.Errorf("failed to regex match tmdbid")
+	}
+	n, err := strconv.ParseInt(groups[1], 10, 63)
+	if err != nil {
+		return 0, fmt.Errorf("failed to convert tmdbid: %v", err)
+	}
+	tmdbid = int(n)
+	return
+}
+
+type dirMatchInfo struct {
+	name   string
+	year   int
+	season int
 }
