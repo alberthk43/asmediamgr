@@ -24,6 +24,30 @@ var (
 	}
 )
 
+func (p *AniTeamParser) IsDefaultEnable() bool {
+	return true
+}
+
+func (p *AniTeamParser) Init(cfgPath string) (priority float32, err error) {
+	return 0, nil
+}
+
+func (p *AniTeamParser) ParseV2(entry *dirinfo.Entry) (ok bool, err error) {
+	err = p.Parse(entry)
+	if err != nil {
+		return false, nil
+	}
+	return true, nil
+}
+
+const (
+	name = "aniteam"
+)
+
+func init() {
+	parser.RegisterParser(name, &AniTeamParser{})
+}
+
 func (p *AniTeamParser) Parse(entry *dirinfo.Entry) error {
 	// check entry is single media file
 	if entry == nil {
