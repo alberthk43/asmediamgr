@@ -2,6 +2,7 @@ package tvepfile
 
 import (
 	"fmt"
+	"path/filepath"
 	"regexp"
 	"strconv"
 	"strings"
@@ -12,6 +13,7 @@ import (
 
 	"asmediamgr/pkg/common"
 	"asmediamgr/pkg/dirinfo"
+	"asmediamgr/pkg/disk"
 	"asmediamgr/pkg/parser"
 )
 
@@ -97,17 +99,34 @@ func (p *TvEpFile) Init(cfgPath string, logger log.Logger) (priority float32, er
 	return 0, nil
 }
 
-func (p *TvEpFile) Parse(entry *dirinfo.Entry) (ok bool, err error) {
+func (p *TvEpFile) Parse(entry *dirinfo.Entry, opts *parser.ParserMgrRunOpts) (ok bool, err error) {
 	if entry.Type != dirinfo.FileEntry || len(entry.FileList) != 1 {
 		return false, nil
+	}
+	file := entry.FileList[0]
+	tvMediaTargetDir, ok := opts.MediaTypeDirs[common.MediaTypeTv]
+	if !ok {
+		return false, fmt.Errorf("no tv media target dir")
 	}
 	info, err := p.parse(entry)
 	if err != nil {
 		return false, fmt.Errorf("parse() error = %v", err)
 	}
-	// do something with info
 	level.Info(p.logger).Log("msg", "matched", "file", entry.Name(), "originalName", info.originalName,
 		"season", info.season, "episode", info.episode, "tmdbid", info.tmdbid, "year", info.year)
+	diskService := parser.GetDefaultDiskService()
+	err = diskService.RenameTvEpisode(&disk.TvEpisodeRenameTask{
+		OldPath:      filepath.Join(entry.MotherPath, file.RelPathToMother),
+		NewMotherDir: tvMediaTargetDir,
+		OriginalName: info.originalName,
+		Year:         info.year,
+		Tmdbid:       info.tmdbid,
+		Season:       info.season,
+		Episode:      info.episode,
+	})
+	if err != nil {
+		return false, fmt.Errorf("RenameTvEpisode() error = %v", err)
+	}
 	return true, nil
 }
 
@@ -115,8 +134,8 @@ func (p *TvEpFile) parse(entry *dirinfo.Entry) (info *tvEpInfo, err error) {
 	for _, patter := range p.patterns {
 		info, err = p.patternMatch(entry, patter)
 		if err != nil {
-			level.Warn(p.logger).Log("msg", "patternMatch() error", "err", err)
-			continue
+			level.Error(p.logger).Log("msg", "patternMatch() error", "err", err)
+			break
 		}
 		if info != nil {
 			break
@@ -262,7 +281,11 @@ func (p *TvEpFile) dealSearchNameAndScrapedSeason(tmdbService parser.TmdbService
 		return nil, fmt.Errorf("GetSearchTVShow() no result")
 	}
 	if tvs.TotalResults > 1 {
-		return nil, fmt.Errorf("GetSearchTVShow() multiple result")
+		var results []string
+		for i := 0; i < 3 && i < len(tvs.Results); i++ {
+			results = append(results, fmt.Sprintf("%s-%d", tvs.Results[i].Name, tvs.Results[i].ID))
+		}
+		return nil, fmt.Errorf("GetSearchTVShow() multiple result, first 3 results = %v", results)
 	}
 	info.tmdbid = int(tvs.Results[0].ID)
 	tvDetail, err := tmdbService.GetTVDetails(info.tmdbid, defaultTmdbUrlOptions)
@@ -296,7 +319,11 @@ func (p *TvEpFile) dealSearchNameAndPreSeason(tmdbService parser.TmdbService, pa
 		return nil, fmt.Errorf("GetSearchTVShow() no result")
 	}
 	if tvs.TotalResults > 1 {
-		return nil, fmt.Errorf("GetSearchTVShow() multiple result")
+		var results []string
+		for i := 0; i < 3 && i < len(tvs.Results); i++ {
+			results = append(results, fmt.Sprintf("%s-%d", tvs.Results[i].Name, tvs.Results[i].ID))
+		}
+		return nil, fmt.Errorf("GetSearchTVShow() multiple result, first 3 results = %v", results)
 	}
 	info.tmdbid = int(tvs.Results[0].ID)
 	tvDetail, err := tmdbService.GetTVDetails(info.tmdbid, defaultTmdbUrlOptions)

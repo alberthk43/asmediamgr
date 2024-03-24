@@ -18,7 +18,7 @@ func (p *MockParser) Init(cfgPath string, logger log.Logger) (priority float32, 
 	return 0, nil
 }
 
-func (p *MockParser) Parse(entry *dirinfo.Entry) (ok bool, err error) {
+func (p *MockParser) Parse(entry *dirinfo.Entry, opts *ParserMgrRunOpts) (ok bool, err error) {
 	return true, nil
 }
 

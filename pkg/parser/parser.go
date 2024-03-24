@@ -6,6 +6,7 @@ import (
 	tmdb "github.com/cyruzin/golang-tmdb"
 
 	"asmediamgr/pkg/dirinfo"
+	"asmediamgr/pkg/disk"
 	"asmediamgr/pkg/diskop"
 	"asmediamgr/pkg/servicemgr"
 )
@@ -21,6 +22,11 @@ type TmdbService interface {
 	GetSearchMovies(query string, urlOptions map[string]string) (*tmdb.SearchMovies, error)
 	GetSearchTVShow(query string, urlOptions map[string]string) (*tmdb.SearchTVShows, error)
 	GetTVDetails(id int, urlOptions map[string]string) (*tmdb.TVDetails, error)
+}
+
+// DiskService is a service that can do real disk operations, such as rename files, etc
+type DiskService interface {
+	RenameTvEpisode(task *disk.TvEpisodeRenameTask) error
 }
 
 // DiskOpService is a service that can rename files

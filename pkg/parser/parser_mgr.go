@@ -36,6 +36,7 @@ var (
 )
 
 // RegisterTmdbService registers a tmdb service
+// Note: this function is concurrent safe
 func RegisterTmdbService(s TmdbService) {
 	tmdbServiceMu.Lock()
 	defer tmdbServiceMu.Unlock()
@@ -43,18 +44,39 @@ func RegisterTmdbService(s TmdbService) {
 }
 
 // RegisterTmdbService registers a tmdb service
-// Note: this function is thread safe
+// Note: this function is concurrent safe
 func GetDefaultTmdbService() TmdbService {
 	tmdbServiceMu.RLock()
 	defer tmdbServiceMu.RUnlock()
 	return tmdbServce
 }
 
+var (
+	diskServiceMu sync.RWMutex
+	diskService   DiskService
+)
+
+// RegisterDiskService registers a disk service
+// Note: this function is concurrent safe
+func RegisterDiskService(s DiskService) {
+	diskServiceMu.Lock()
+	defer diskServiceMu.Unlock()
+	diskService = s
+}
+
+// GetDefaultDiskService returns the disk service
+// Note: this function is concurrent safe
+func GetDefaultDiskService() DiskService {
+	diskServiceMu.RLock()
+	defer diskServiceMu.RUnlock()
+	return diskService
+}
+
 // Parserable is an interface for parsers
 type Parserable interface {
 	IsDefaultEnable() bool
 	Init(cfgPath string, logger log.Logger) (priority float32, err error)
-	Parse(entry *dirinfo.Entry) (ok bool, err error)
+	Parse(entry *dirinfo.Entry, opts *ParserMgrRunOpts) (ok bool, err error)
 }
 
 // ParserMgrOpts is the options for the parser
@@ -169,7 +191,7 @@ func (pm *ParserMgr) RunParsers(opts *ParserMgrRunOpts) error {
 	var wg sync.WaitGroup
 	for _, scanDir := range opts.ScanDirs {
 		wg.Add(1)
-		err := pm.runParsersWithDir(&wg, scanDir)
+		err := pm.runParsersWithDir(&wg, scanDir, opts)
 		if err != nil {
 			return fmt.Errorf("runParsersWithDir() error: %v", err)
 		}
@@ -186,7 +208,7 @@ type failNextTime struct {
 }
 
 // runParsersWithDir runs the parsers with the dir
-func (pm *ParserMgr) runParsersWithDir(wg *sync.WaitGroup, scanDir string) error {
+func (pm *ParserMgr) runParsersWithDir(wg *sync.WaitGroup, scanDir string, opts *ParserMgrRunOpts) error {
 	_, err := os.Stat(scanDir)
 	if err != nil {
 		return fmt.Errorf("failed to stat scanDir: %v", err)
@@ -194,9 +216,14 @@ func (pm *ParserMgr) runParsersWithDir(wg *sync.WaitGroup, scanDir string) error
 	go func() {
 		defer wg.Done()
 		doNextTime := make(map[string]*failNextTime)
-		now := time.Now()
+		firstScan := true
 		for {
-			defer time.Sleep(pm.sleepDurScan)
+			if !firstScan {
+				time.Sleep(pm.sleepDurScan)
+			} else {
+				firstScan = false
+			}
+			now := time.Now()
 			entries, err := dirinfo.ScanMotherDir(scanDir)
 			if err != nil {
 				level.Error(pm.logger).Log("msg", fmt.Sprintf("failed to scan motherDir: %v", err))
@@ -214,7 +241,7 @@ func (pm *ParserMgr) runParsersWithDir(wg *sync.WaitGroup, scanDir string) error
 			for _, entry := range entries {
 				nextTime, ok := doNextTime[entry.Name()]
 				if !ok {
-					nextTime := &failNextTime{
+					nextTime = &failNextTime{
 						validTime: now,
 						failCnt:   0,
 					}
@@ -224,20 +251,28 @@ func (pm *ParserMgr) runParsersWithDir(wg *sync.WaitGroup, scanDir string) error
 					nextTime.validTime = nextTime.validTime.Add(
 						time.Duration(math.Pow(2, float64(nextTime.failCnt))) * time.Second)
 				}
+				isSucc := false
+				succParserName := ""
 				for _, parserInfo := range pm.parsers {
-					defer time.Sleep(pm.sleepDurParse)
-					ok, err := pm.runParser(entry, parserInfo)
+					ok, err := pm.runParser(entry, parserInfo, opts)
 					if err != nil {
 						level.Error(pm.logger).Log("msg", fmt.Sprintf("parser %s runParser() error: %v", parserInfo.name, err))
+						time.Sleep(pm.sleepDurParse)
 						break
 					}
 					if ok {
-						level.Info(pm.logger).Log("msg", fmt.Sprintf("parser %s runParser() success", parserInfo.name))
+						isSucc = true
+						succParserName = parserInfo.name
 						break
 					}
+					time.Sleep(pm.sleepDurParse)
 				}
-				level.Info(pm.logger).Log("msg", fmt.Sprintf("entry %s all parsers failed, will retry after %v", entry.Name(),
-					nextTime.validTime.Add(time.Duration(math.Pow(2, float64(nextTime.failCnt)))*time.Second)))
+				if isSucc {
+					level.Info(pm.logger).Log("msg", "entry parser done", "entry", entry.Name(), "parser", succParserName)
+				} else {
+					level.Warn(pm.logger).Log("msg", "entry parser done", "entry", entry.Name(), "nextTime",
+						nextTime.validTime.Add(time.Duration(math.Pow(2, float64(nextTime.failCnt)))*time.Second))
+				}
 			}
 		}
 	}()
@@ -245,15 +280,15 @@ func (pm *ParserMgr) runParsersWithDir(wg *sync.WaitGroup, scanDir string) error
 }
 
 // runParser runs the parser, and will recover all parser logic level panic
-func (pm *ParserMgr) runParser(entry *dirinfo.Entry, parserInfo parserInfo) (ok bool, err error) {
+func (pm *ParserMgr) runParser(entry *dirinfo.Entry, parserInfo parserInfo, opts *ParserMgrRunOpts) (ok bool, err error) {
 	defer func() {
 		if r := recover(); r != nil {
 			err = fmt.Errorf("parser %s panic: %v", parserInfo.name, r)
 		}
 	}()
-	ok, err = parserInfo.parser.Parse(entry)
+	ok, err = parserInfo.parser.Parse(entry, opts)
 	if err != nil {
-		return false, fmt.Errorf("parser %s Parse() error: %v", parserInfo.name, err)
+		return false, nil
 	}
 	return ok, nil
 }

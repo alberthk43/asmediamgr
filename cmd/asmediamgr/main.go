@@ -14,6 +14,7 @@ import (
 
 	"asmediamgr/pkg/common"
 	"asmediamgr/pkg/common/aslog"
+	"asmediamgr/pkg/disk"
 	"asmediamgr/pkg/parser"
 	"asmediamgr/pkg/tmdb"
 
@@ -34,6 +35,7 @@ type flagConfig struct {
 	parserScanDur        time.Duration
 	parserParseDur       time.Duration
 	tmdbProxy            string
+	dryRun               bool
 }
 
 type flagStringSlice []string
@@ -63,9 +65,10 @@ func main() {
 	flag.Var(&cfg.parserDirs, "parserscan", "parser dirs")
 	flag.StringVar(&cfg.parserTargetMovieDir, "moviedir", "movies", "target movie dir")
 	flag.StringVar(&cfg.parserTargetTvDir, "tvdir", "tv", "target tv dir")
-	flag.DurationVar(&cfg.parserScanDur, "scandur", time.Duration(5)*time.Minute, "scan duration")
-	flag.DurationVar(&cfg.parserParseDur, "parsedur", time.Duration(1)*time.Second, "parse duration")
+	flag.DurationVar(&cfg.parserScanDur, "scandur", 5*time.Minute, "scan duration")
+	flag.DurationVar(&cfg.parserParseDur, "parsedur", 1*time.Second, "parse duration")
 	flag.StringVar(&cfg.tmdbProxy, "tmdbproxy", "", "tmdb proxy")
+	flag.BoolVar(&cfg.dryRun, "dryrun", false, "dry run")
 	flag.Parse()
 
 	loglvVal, err := level.Parse(cfg.loglv)
@@ -98,6 +101,16 @@ func main() {
 		os.Exit(1)
 	}
 	parser.RegisterTmdbService(tmdbService)
+
+	diskService, err := disk.NewDiskService(&disk.DiskServiceOpts{
+		Logger:         log.With(logger, "component", "disk"),
+		DryRunModeOpen: cfg.dryRun,
+	})
+	if err != nil {
+		fmt.Fprintf(os.Stderr, "failed to create disk service: %v\n", err)
+		os.Exit(1)
+	}
+	parser.RegisterDiskService(diskService)
 
 	parserMgrRunOpts := &parser.ParserMgrRunOpts{
 		ScanDirs: cfg.parserDirs,
