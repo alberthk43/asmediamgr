@@ -6,6 +6,7 @@ import (
 	"strconv"
 	"strings"
 
+	"github.com/BurntSushi/toml"
 	"github.com/go-kit/log"
 	"github.com/go-kit/log/level"
 
@@ -61,7 +62,24 @@ func (p *TvEpFile) IsDefaultEnable() bool {
 	return true
 }
 
+type Config struct {
+	Patterns []*PatternConfig `toml:"patterns"`
+}
+
+func loadConfigFile(cfgPath string) (*Config, error) {
+	cfg := &Config{}
+	_, err := toml.DecodeFile(cfgPath, cfg)
+	if err != nil {
+		return nil, fmt.Errorf("DecodeFile() error = %v", err)
+	}
+	return cfg, nil
+}
+
 func (p *TvEpFile) Init(cfgPath string, logger log.Logger) (priority float32, err error) {
+	cfg, _ := loadConfigFile(cfgPath) // allow no-config
+	if cfg != nil {
+		p.patterns = cfg.Patterns
+	}
 	p.logger = logger
 	for _, pattern := range p.patterns {
 		pattern.Pattern, err = regexp.Compile(pattern.PatternStr)
@@ -88,7 +106,8 @@ func (p *TvEpFile) Parse(entry *dirinfo.Entry) (ok bool, err error) {
 		return false, fmt.Errorf("parse() error = %v", err)
 	}
 	// do something with info
-	level.Info(p.logger).Log("msg", "parse success", "info", info)
+	level.Info(p.logger).Log("msg", "matched", "file", entry.Name(), "originalName", info.originalName,
+		"season", info.season, "episode", info.episode, "tmdbid", info.tmdbid, "year", info.year)
 	return true, nil
 }
 

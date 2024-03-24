@@ -11,6 +11,35 @@ import (
 	"asmediamgr/pkg/parser/fakes"
 )
 
+func TestLoadConfi(t *testing.T) {
+	cfg, err := loadConfigFile("./testdata/tvepfile.toml")
+	if err != nil {
+		t.Fatalf("loadConfigFile() error = %v", err)
+	}
+	if len(cfg.Patterns) != 1 {
+		t.Fatalf("loadConfigFile() got = %v, want = 1", len(cfg.Patterns))
+	}
+	pattern := cfg.Patterns[0]
+	if pattern.PatternStr != `.*` {
+		t.Fatalf("loadConfigFile() got = %v, want = .*", pattern.PatternStr)
+	}
+	if pattern.Tmdbid != 123456789 {
+		t.Fatalf("loadConfigFile() got = %v, want = 123456789", pattern.Tmdbid)
+	}
+	if pattern.Season != 2 {
+		t.Fatalf("loadConfigFile() got = %v, want = 2", pattern.Season)
+	}
+	if len(pattern.OptNames) != 2 {
+		t.Fatalf("loadConfigFile() got = %v, want = 1", len(pattern.OptNames))
+	}
+	if pattern.OptNames[0] != ChineseSeasonOpt {
+		t.Fatalf("loadConfigFile() got = %v, want = %v", pattern.OptNames[0], ChineseSeasonOpt)
+	}
+	if pattern.OptNames[1] != "future_feature" {
+		t.Fatalf("loadConfigFile() got = %v, want = future_feature", pattern.OptNames[1])
+	}
+}
+
 var (
 	tvDetail = &tmdb.TVDetails{
 		FirstAirDate: "2020-05-07",

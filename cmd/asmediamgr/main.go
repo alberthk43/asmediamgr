@@ -15,10 +15,12 @@ import (
 	"asmediamgr/pkg/common"
 	"asmediamgr/pkg/common/aslog"
 	"asmediamgr/pkg/parser"
+	"asmediamgr/pkg/tmdb"
 
-	_ "asmediamgr/pkg/parser/aniteam"
+	_ "asmediamgr/pkg/parser/tvepfile"
 )
 
+// flagConfig is the configuration for the program
 type flagConfig struct {
 	configFile           string
 	parserConfigDir      string
@@ -31,6 +33,7 @@ type flagConfig struct {
 	parserTargetTvDir    string
 	parserScanDur        time.Duration
 	parserParseDur       time.Duration
+	tmdbProxy            string
 }
 
 type flagStringSlice []string
@@ -62,7 +65,9 @@ func main() {
 	flag.StringVar(&cfg.parserTargetTvDir, "tvdir", "tv", "target tv dir")
 	flag.DurationVar(&cfg.parserScanDur, "scandur", time.Duration(5)*time.Minute, "scan duration")
 	flag.DurationVar(&cfg.parserParseDur, "parsedur", time.Duration(1)*time.Second, "parse duration")
+	flag.StringVar(&cfg.tmdbProxy, "tmdbproxy", "", "tmdb proxy")
 	flag.Parse()
+
 	loglvVal, err := level.Parse(cfg.loglv)
 	if err != nil {
 		fmt.Fprintf(os.Stderr, "failed to parse log level: %v\n", err)
@@ -84,14 +89,24 @@ func main() {
 		fmt.Fprintf(os.Stderr, "failed to create parser manager: %v\n", err)
 		os.Exit(1)
 	}
+
+	tmdbService, err := tmdb.NewTmdbService(&tmdb.Configuration{
+		Sock5Proxy: cfg.tmdbProxy,
+	})
+	if err != nil {
+		fmt.Fprintf(os.Stderr, "failed to create tmdb service: %v\n", err)
+		os.Exit(1)
+	}
+	parser.RegisterTmdbService(tmdbService)
+
 	parserMgrRunOpts := &parser.ParserMgrRunOpts{
 		ScanDirs: cfg.parserDirs,
 		MediaTypeDirs: map[common.MediaType]string{
 			common.MediaTypeMovie: cfg.parserTargetMovieDir,
 			common.MediaTypeTv:    cfg.parserTargetTvDir,
 		},
-		SleepDurScan:  time.Duration(5) * time.Minute,
-		SleepDurParse: time.Duration(1) * time.Second,
+		SleepDurScan:  cfg.parserScanDur,
+		SleepDurParse: cfg.parserParseDur,
 	}
 	var wg sync.WaitGroup
 	wg.Add(1)
