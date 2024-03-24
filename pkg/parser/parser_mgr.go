@@ -31,14 +31,22 @@ func RegisterParser(name string, p Parserable) {
 }
 
 var (
-	tmdbServce TmdbService
+	tmdbServiceMu sync.RWMutex
+	tmdbServce    TmdbService
 )
 
+// RegisterTmdbService registers a tmdb service
 func RegisterTmdbService(s TmdbService) {
+	tmdbServiceMu.Lock()
+	defer tmdbServiceMu.Unlock()
 	tmdbServce = s
 }
 
+// RegisterTmdbService registers a tmdb service
+// Note: this function is thread safe
 func GetDefaultTmdbService() TmdbService {
+	tmdbServiceMu.RLock()
+	defer tmdbServiceMu.RUnlock()
 	return tmdbServce
 }
 
@@ -115,6 +123,7 @@ func (a byPriority) Swap(i, j int) { a[i], a[j] = a[j], a[i] }
 
 func (a byPriority) Less(i, j int) bool { return a[i].priority < a[j].priority }
 
+// parserInfo is a struct that holds the parser info
 type parserInfo struct {
 	name     string
 	priority float32
@@ -129,6 +138,7 @@ type ParserMgr struct {
 	sleepDurParse time.Duration
 }
 
+// ParserMgrRunOpts is the runtime options for the parser
 type ParserMgrRunOpts struct {
 	ScanDirs      []string
 	MediaTypeDirs map[common.MediaType]string
@@ -137,10 +147,11 @@ type ParserMgrRunOpts struct {
 }
 
 const (
-	defaultScanSleepDur  = time.Duration(5) * time.Minute
-	defaultParseSleepDur = time.Duration(1) * time.Second
+	defaultScanSleepDur  = time.Duration(5) * time.Minute // default sleep duration for scanning
+	defaultParseSleepDur = time.Duration(1) * time.Second // default sleep duration for parsing
 )
 
+// RunParsers runs the parsers with the options, maybe in multiple dirs, with multiple goroutines
 func (pm *ParserMgr) RunParsers(opts *ParserMgrRunOpts) error {
 	if opts.SleepDurScan == 0 {
 		pm.sleepDurScan = defaultScanSleepDur
@@ -167,11 +178,14 @@ func (pm *ParserMgr) RunParsers(opts *ParserMgrRunOpts) error {
 	return nil
 }
 
+// failNextTime is a struct that holds the next time to run the parser
+// prevent the parser from running too frequently
 type failNextTime struct {
-	validTime time.Time
-	failCnt   int32
+	validTime time.Time // valid to run time for entry
+	failCnt   int32     // fail count
 }
 
+// runParsersWithDir runs the parsers with the dir
 func (pm *ParserMgr) runParsersWithDir(wg *sync.WaitGroup, scanDir string) error {
 	_, err := os.Stat(scanDir)
 	if err != nil {
@@ -230,6 +244,7 @@ func (pm *ParserMgr) runParsersWithDir(wg *sync.WaitGroup, scanDir string) error
 	return nil
 }
 
+// runParser runs the parser, and will recover all parser logic level panic
 func (pm *ParserMgr) runParser(entry *dirinfo.Entry, parserInfo parserInfo) (ok bool, err error) {
 	defer func() {
 		if r := recover(); r != nil {
