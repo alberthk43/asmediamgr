@@ -39,3 +39,68 @@ func TestParserTmdbDateStr(t *testing.T) {
 		}
 	}
 }
+
+func TestChineseToNum(t *testing.T) {
+	tests := []struct {
+		chnStr   string
+		expected int
+		ok       bool
+	}{
+		{
+			chnStr:   "零",
+			expected: 0,
+			ok:       true,
+		},
+		{
+			chnStr:   "一",
+			expected: 1,
+			ok:       true,
+		},
+		{
+			chnStr:   "二",
+			expected: 2,
+			ok:       true,
+		},
+		{
+			chnStr:   "三",
+			expected: 3,
+			ok:       true,
+		},
+		{
+			chnStr:   "四",
+			expected: 4,
+			ok:       true,
+		},
+		{
+			chnStr:   "五",
+			expected: 5,
+			ok:       true,
+		},
+		{
+			chnStr:   "六",
+			expected: 6,
+			ok:       true,
+		},
+		{
+			chnStr:   "七",
+			expected: 7,
+			ok:       true,
+		},
+		{
+			chnStr:   "八",
+			expected: 8,
+			ok:       true,
+		},
+		{
+			chnStr:   "九",
+			expected: 9,
+			ok:       true,
+		},
+	}
+	for _, tt := range tests {
+		num, ok := ChineseToNum(tt.chnStr)
+		if num != tt.expected || ok != tt.ok {
+			t.Fatalf("ChineseToNum() chnStr = %s, got = %d, %t, expected = %d, %t", tt.chnStr, num, ok, tt.expected, tt.ok)
+		}
+	}
+}
