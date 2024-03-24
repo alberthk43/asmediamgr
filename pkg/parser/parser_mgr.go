@@ -1,8 +1,6 @@
 package parser
 
 import (
-	"asmediamgr/pkg/common"
-	"asmediamgr/pkg/dirinfo"
 	"fmt"
 	"math"
 	"os"
@@ -13,6 +11,9 @@ import (
 
 	"github.com/go-kit/log"
 	"github.com/go-kit/log/level"
+
+	"asmediamgr/pkg/common"
+	"asmediamgr/pkg/dirinfo"
 )
 
 var (
@@ -29,11 +30,23 @@ func RegisterParser(name string, p Parserable) {
 	RegisteredParsers[name] = p
 }
 
+var (
+	tmdbServce TmdbService
+)
+
+func RegisterTmdbService(s TmdbService) {
+	tmdbServce = s
+}
+
+func GetDefaultTmdbService() TmdbService {
+	return tmdbServce
+}
+
 // Parserable is an interface for parsers
 type Parserable interface {
 	IsDefaultEnable() bool
-	Init(cfgPath string) (priority float32, err error)
-	ParseV2(entry *dirinfo.Entry) (ok bool, err error)
+	Init(cfgPath string, logger log.Logger) (priority float32, err error)
+	Parse(entry *dirinfo.Entry) (ok bool, err error)
 }
 
 // ParserMgrOpts is the options for the parser
@@ -76,7 +89,7 @@ func NewParserMgr(opts *ParserMgrOpts) (*ParserMgr, error) {
 	}
 	for name, parser := range enableParsers {
 		cfgPath := filepath.Join(opts.ConfigDir, name+".toml")
-		priority, err := parser.Init(cfgPath)
+		priority, err := parser.Init(cfgPath, log.With(pm.logger, "parser", name))
 		if err != nil {
 			return nil, fmt.Errorf("parser %s init error: %v", name, err)
 		}
@@ -198,6 +211,7 @@ func (pm *ParserMgr) runParsersWithDir(wg *sync.WaitGroup, scanDir string) error
 						time.Duration(math.Pow(2, float64(nextTime.failCnt))) * time.Second)
 				}
 				for _, parserInfo := range pm.parsers {
+					defer time.Sleep(pm.sleepDurParse)
 					ok, err := pm.runParser(entry, parserInfo)
 					if err != nil {
 						level.Error(pm.logger).Log("msg", fmt.Sprintf("parser %s runParser() error: %v", parserInfo.name, err))
@@ -222,9 +236,9 @@ func (pm *ParserMgr) runParser(entry *dirinfo.Entry, parserInfo parserInfo) (ok 
 			err = fmt.Errorf("parser %s panic: %v", parserInfo.name, r)
 		}
 	}()
-	ok, err = parserInfo.parser.ParseV2(entry)
+	ok, err = parserInfo.parser.Parse(entry)
 	if err != nil {
-		return false, fmt.Errorf("parser %s ParseV2() error: %v", parserInfo.name, err)
+		return false, fmt.Errorf("parser %s Parse() error: %v", parserInfo.name, err)
 	}
 	return ok, nil
 }

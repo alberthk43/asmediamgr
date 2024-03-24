@@ -9,6 +9,7 @@ import (
 	"sync"
 	"time"
 
+	"github.com/go-kit/log"
 	"github.com/go-kit/log/level"
 
 	"asmediamgr/pkg/common"
@@ -52,7 +53,7 @@ func main() {
 		aslogConfig: aslog.Config{},
 	}
 	flag.StringVar(&cfg.configFile, "config", "config.yaml", "config file")
-	flag.StringVar(&cfg.parserConfigDir, "parsercfg", "parsers", "parser dir")
+	flag.StringVar(&cfg.parserConfigDir, "parsercfg", "parsercfg", "parser dir")
 	flag.StringVar(&cfg.loglv, "loglv", "info", "log level")
 	flag.Var(&cfg.enableParsers, "enable", "enable parsers")
 	flag.Var(&cfg.disableParsers, "disable", "disable parsers")
@@ -73,7 +74,7 @@ func main() {
 	logger := aslog.New(&cfg.aslogConfig)
 
 	parserMgrOpts := &parser.ParserMgrOpts{
-		Logger:         logger,
+		Logger:         log.With(logger, "component", "parsermgr"),
 		ConfigDir:      cfg.parserConfigDir,
 		EnableParsers:  cfg.enableParsers,
 		DisableParsers: cfg.disableParsers,

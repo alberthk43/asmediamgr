@@ -1,8 +1,11 @@
 package parser
 
 import (
-	"asmediamgr/pkg/dirinfo"
 	"testing"
+
+	"github.com/go-kit/log"
+
+	"asmediamgr/pkg/dirinfo"
 )
 
 type MockParser struct{}
@@ -11,11 +14,11 @@ func (p *MockParser) IsDefaultEnable() bool {
 	return true
 }
 
-func (p *MockParser) Init(cfgPath string) (priority float32, err error) {
+func (p *MockParser) Init(cfgPath string, logger log.Logger) (priority float32, err error) {
 	return 0, nil
 }
 
-func (p *MockParser) ParseV2(entry *dirinfo.Entry) (ok bool, err error) {
+func (p *MockParser) Parse(entry *dirinfo.Entry) (ok bool, err error) {
 	return true, nil
 }
 

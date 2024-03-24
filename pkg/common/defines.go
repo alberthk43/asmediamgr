@@ -7,3 +7,7 @@ const (
 	MediaTypeMovie
 	MediaTypeTv
 )
+
+const (
+	ValidStartYear = 1900
+)
