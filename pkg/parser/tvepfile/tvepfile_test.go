@@ -249,7 +249,7 @@ func TestSearchByNameAndPreSeasonAndScrapedEpisodeWithChineseSeasonNameOpt(t *te
 		FileList: []*dirinfo.File{
 			{
 				RelPathToMother: "",
-				Name:            "[Some Title] Search Name 第二季 Meaningless Season Name - 24 [1080P][Baha][WEB-DL][AAC AVC][CHT].mp4",
+				Name:            "[Some Title] Search Name 第二季 Meaningless Season Name - 24 [1080P][Source][WEB-DL][AAC AVC][CHT].mp4",
 				Ext:             ".mp4",
 				BytesNum:        123456789,
 			},

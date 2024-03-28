@@ -67,7 +67,7 @@ func TestNormalSuccEntry(t *testing.T) {
 		FileList: []*dirinfo.File{
 			{
 				RelPathToMother: "",
-				Name:            "[ANi] Some Name - 08 [1080P][Baha][WEB-DL][AAC AVC][CHT].mp4",
+				Name:            "[ANi] Some Name - 08 [1080P][Source][WEB-DL][AAC AVC][CHT].mp4",
 				Ext:             ".mp4",
 				BytesNum:        123456789,
 			},
@@ -98,7 +98,7 @@ func TestExplictTmdbId(t *testing.T) {
 		FileList: []*dirinfo.File{
 			{
 				RelPathToMother: "",
-				Name:            "[ANi] Name Do Not Matter Here - 08 [1080P][Baha][WEB-DL][AAC AVC][CHT] tv tmdbid-123456789.mp4",
+				Name:            "[ANi] Name Do Not Matter Here - 08 [1080P][Source][WEB-DL][AAC AVC][CHT] tv tmdbid-123456789.mp4",
 				Ext:             ".mp4",
 				BytesNum:        888888,
 			},
@@ -129,7 +129,7 @@ func TestWithChineaseSeasonInfo(t *testing.T) {
 		FileList: []*dirinfo.File{
 			{
 				RelPathToMother: "",
-				Name:            "[ANi] Some Name 第三季 - 99 [1080P][Baha][WEB-DL][AAC AVC][CHT].mp4",
+				Name:            "[ANi] Some Name 第三季 - 99 [1080P][Source][WEB-DL][AAC AVC][CHT].mp4",
 				Ext:             ".mp4",
 				BytesNum:        888888,
 			},
@@ -160,7 +160,7 @@ func TestWithUselessAgeRestrict(t *testing.T) {
 		FileList: []*dirinfo.File{
 			{
 				RelPathToMother: "",
-				Name:            "[ANi] Name Do Not Matter Here 第九季 [年齡限制版] - 56 [1080P][Baha][WEB-DL][AAC AVC][CHT] tv tmdbid-123456789.mp4",
+				Name:            "[ANi] Name Do Not Matter Here 第九季 [年齡限制版] - 56 [1080P][Source][WEB-DL][AAC AVC][CHT] tv tmdbid-123456789.mp4",
 				Ext:             ".mp4",
 				BytesNum:        888888,
 			},
@@ -191,7 +191,7 @@ func TestWithUselessRegionRestrict(t *testing.T) {
 		FileList: []*dirinfo.File{
 			{
 				RelPathToMother: "",
-				Name:            "[ANi] Name Do Not Matter Here 第九季 [年齡限制版]（僅限港澳台地區） - 56 [1080P][Baha][WEB-DL][AAC AVC][CHT] tv tmdbid-123456789.mp4",
+				Name:            "[ANi] Name Do Not Matter Here 第九季 [年齡限制版]（僅限港澳台地區） - 56 [1080P][Source][WEB-DL][AAC AVC][CHT] tv tmdbid-123456789.mp4",
 				Ext:             ".mp4",
 				BytesNum:        888888,
 			},
@@ -222,7 +222,7 @@ func TestWithUselessRegionRestrictAnotherOrder(t *testing.T) {
 		FileList: []*dirinfo.File{
 			{
 				RelPathToMother: "",
-				Name:            "[ANi] Some Name [年齡限制版]（僅限港澳台地區）第九季 - 56 [1080P][Baha][WEB-DL][AAC AVC][CHT].mp4",
+				Name:            "[ANi] Some Name [年齡限制版]（僅限港澳台地區）第九季 - 56 [1080P][Source][WEB-DL][AAC AVC][CHT].mp4",
 				Ext:             ".mp4",
 				BytesNum:        888888,
 			},
@@ -253,7 +253,7 @@ func TestWithExplictedSeasonEpisodeNum(t *testing.T) {
 		FileList: []*dirinfo.File{
 			{
 				RelPathToMother: "",
-				Name:            "[ANi] Some Name [年齡限制版]（僅限港澳台地區）第九季 - 56 [1080P][Baha][WEB-DL][AAC AVC][CHT] S04E09.mp4",
+				Name:            "[ANi] Some Name [年齡限制版]（僅限港澳台地區）第九季 - 56 [1080P][Source][WEB-DL][AAC AVC][CHT] S04E09.mp4",
 				Ext:             ".mp4",
 				BytesNum:        888888,
 			},
@@ -284,7 +284,7 @@ func TestWithPredefined(t *testing.T) {
 		FileList: []*dirinfo.File{
 			{
 				RelPathToMother: "",
-				Name:            "[ANi] Predefined Name - 56 [1080P][Baha][WEB-DL][AAC AVC][CHT].mp4",
+				Name:            "[ANi] Predefined Name - 56 [1080P][Source][WEB-DL][AAC AVC][CHT].mp4",
 				Ext:             ".mp4",
 				BytesNum:        888888,
 			},
