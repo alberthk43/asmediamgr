@@ -115,7 +115,7 @@ func (p *TvEpFile) Parse(entry *dirinfo.Entry, opts *parser.ParserMgrRunOpts) (o
 	if info == nil {
 		return false, nil // no match and no error
 	}
-	level.Info(p.logger).Log("msg", "matched", "file", entry.Name(), "originalName", info.originalName,
+	level.Info(p.logger).Log("msg", "matched", "file", entry.Name(), "name", info.name, "originalName", info.originalName,
 		"season", info.season, "episode", info.episode, "tmdbid", info.tmdbid, "year", info.year)
 	diskService := parser.GetDefaultDiskService()
 	err = diskService.RenameTvEpisode(&disk.TvEpisodeRenameTask{

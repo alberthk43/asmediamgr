@@ -260,7 +260,7 @@ func TestSearchByNameAndPreSeasonAndScrapedEpisodeWithChineseSeasonNameOpt(t *te
 			{
 				PatternStr: `\[Some Title\] (?P<name>.*) - (?P<episode>\d+)`,
 				Tmdbid:     123456789,
-				Season:     1,
+				Season:     -1,
 				OptNames:   []string{ChineseSeasonOpt},
 			},
 		},
