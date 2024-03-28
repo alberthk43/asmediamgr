@@ -266,6 +266,7 @@ func punishAddTime(failCnt int32) time.Duration {
 }
 
 func (pm *ParserMgr) runEntry(entry *dirinfo.Entry, opts *ParserMgrRunOpts) (okParserName string, err error) {
+	// TODO if entry is NOT existed any more, should return "", nil
 	firstTime := true
 	for _, parserInfo := range pm.parsers {
 		if firstTime {
