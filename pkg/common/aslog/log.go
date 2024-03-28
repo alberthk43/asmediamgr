@@ -10,7 +10,7 @@ import (
 
 var (
 	timestampFormat = log.TimestampFormat(
-		func() time.Time { return time.Now().UTC() },
+		func() time.Time { return time.Now() },
 		"2006-01-02T15:04:05.000Z07:00",
 	)
 )

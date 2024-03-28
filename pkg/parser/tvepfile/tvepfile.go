@@ -80,7 +80,7 @@ func loadConfigFile(cfgPath string) (*Config, error) {
 func (p *TvEpFile) Init(cfgPath string, logger log.Logger) (priority float32, err error) {
 	cfg, _ := loadConfigFile(cfgPath) // allow no-config
 	if cfg != nil {
-		p.patterns = cfg.Patterns
+		p.patterns = cfg.Patterns // TODO make 0 as invalid
 	}
 	p.logger = logger
 	for _, pattern := range p.patterns {
@@ -112,6 +112,9 @@ func (p *TvEpFile) Parse(entry *dirinfo.Entry, opts *parser.ParserMgrRunOpts) (o
 	if err != nil {
 		return false, fmt.Errorf("parse() error = %v", err)
 	}
+	if info == nil {
+		return false, nil // no match and no error
+	}
 	level.Info(p.logger).Log("msg", "matched", "file", entry.Name(), "originalName", info.originalName,
 		"season", info.season, "episode", info.episode, "tmdbid", info.tmdbid, "year", info.year)
 	diskService := parser.GetDefaultDiskService()
@@ -125,7 +128,7 @@ func (p *TvEpFile) Parse(entry *dirinfo.Entry, opts *parser.ParserMgrRunOpts) (o
 		Episode:      info.episode,
 	})
 	if err != nil {
-		return false, fmt.Errorf("RenameTvEpisode() error = %v", err)
+		return false, fmt.Errorf("diskService.RenameTvEpisode() error = %v", err)
 	}
 	return true, nil
 }
@@ -134,17 +137,13 @@ func (p *TvEpFile) parse(entry *dirinfo.Entry) (info *tvEpInfo, err error) {
 	for _, patter := range p.patterns {
 		info, err = p.patternMatch(entry, patter)
 		if err != nil {
-			level.Error(p.logger).Log("msg", "patternMatch() error", "err", err)
-			break
+			return nil, err // error, stop all parsers
 		}
 		if info != nil {
-			break
+			return info, nil // matched, return info
 		}
 	}
-	if info == nil {
-		return nil, fmt.Errorf("no pattern match")
-	}
-	return info, nil
+	return nil, nil // no match and no error
 }
 
 const (
@@ -167,6 +166,12 @@ func (p *TvEpFile) patternMatch(entry *dirinfo.Entry, pattern *PatternConfig) (i
 		season:  -1,
 		episode: -1,
 		tmdbid:  -1,
+	}
+	if pattern.Tmdbid > 0 {
+		info.tmdbid = pattern.Tmdbid
+	}
+	if pattern.Season >= 0 {
+		info.season = pattern.Season
 	}
 	for i, group := range pattern.Pattern.SubexpNames() {
 		if i == 0 {
@@ -221,7 +226,7 @@ func (p *TvEpFile) patternMatch(entry *dirinfo.Entry, pattern *PatternConfig) (i
 	} else if info.name != "" && pattern.Season >= 0 && info.episode >= 0 {
 		return p.dealSearchNameAndPreSeason(tmdbService, pattern, info)
 	}
-	return nil, nil
+	return nil, fmt.Errorf("invalid info = %+v, pattern = %+v", info, pattern)
 }
 
 var (
@@ -233,11 +238,11 @@ var (
 func (p *TvEpFile) dealPreTmdbAndSeason(tmdbService parser.TmdbService, pattern *PatternConfig, info *tvEpInfo) (newInfo *tvEpInfo, err error) {
 	tvDetail, err := tmdbService.GetTVDetails(info.tmdbid, defaultTmdbUrlOptions)
 	if err != nil {
-		return nil, fmt.Errorf("GetTVDetails() error = %v", err)
+		return nil, fmt.Errorf("get pre tmdb and season, tmdbid = %d, err = %v", info.tmdbid, err)
 	}
 	dt, err := common.ParseTmdbDateStr(tvDetail.FirstAirDate)
 	if err != nil {
-		return nil, fmt.Errorf("invalid FirstAirDate = %s", tvDetail.FirstAirDate)
+		return nil, fmt.Errorf("get pre tmdb and season, tmdbid = %d, invalid FirstAirDate = %s", info.tmdbid, tvDetail.FirstAirDate)
 	}
 	newInfo = &tvEpInfo{
 		originalName: tvDetail.OriginalName,
@@ -252,11 +257,11 @@ func (p *TvEpFile) dealPreTmdbAndSeason(tmdbService parser.TmdbService, pattern 
 func (p *TvEpFile) dealPreTmdbidAndScrapedSeason(tmdbService parser.TmdbService, info *tvEpInfo) (newInfo *tvEpInfo, err error) {
 	tvDetail, err := tmdbService.GetTVDetails(info.tmdbid, defaultTmdbUrlOptions)
 	if err != nil {
-		return nil, fmt.Errorf("GetTVDetails() error = %v", err)
+		return nil, fmt.Errorf("deal pre tmdb and scraped season, tmdbid = %d, error = %v", info.tmdbid, err)
 	}
 	dt, err := common.ParseTmdbDateStr(tvDetail.FirstAirDate)
 	if err != nil {
-		return nil, fmt.Errorf("invalid FirstAirDate = %s", tvDetail.FirstAirDate)
+		return nil, fmt.Errorf("deal pre tmdb and scraped season, tmdbid = %d, invalid FirstAirDate = %s", info.tmdbid, tvDetail.FirstAirDate)
 	}
 	newInfo = &tvEpInfo{
 		originalName: tvDetail.OriginalName,
@@ -275,26 +280,26 @@ func (p *TvEpFile) dealSearchNameAndScrapedSeason(tmdbService parser.TmdbService
 	}
 	tvs, err := tmdbService.GetSearchTVShow(info.name, urlOptions)
 	if err != nil {
-		return nil, fmt.Errorf("GetSearchTVShow() error = %v", err)
+		return nil, fmt.Errorf("deal search name and scraped season, name = %s, year = %d, error = %v", info.name, info.year, err)
 	}
 	if tvs.TotalResults <= 0 {
-		return nil, fmt.Errorf("GetSearchTVShow() no result")
+		return nil, fmt.Errorf("deal search name and scraped season, name = %s, year = %d, no result", info.name, info.year)
 	}
 	if tvs.TotalResults > 1 {
 		var results []string
 		for i := 0; i < 3 && i < len(tvs.Results); i++ {
 			results = append(results, fmt.Sprintf("%s-%d", tvs.Results[i].Name, tvs.Results[i].ID))
 		}
-		return nil, fmt.Errorf("GetSearchTVShow() multiple result, first 3 results = %v", results)
+		return nil, fmt.Errorf("deal search name and scraped season, multiple result, search name = %s, year = %d ,first 3 results = %v", info.name, info.year, results)
 	}
 	info.tmdbid = int(tvs.Results[0].ID)
 	tvDetail, err := tmdbService.GetTVDetails(info.tmdbid, defaultTmdbUrlOptions)
 	if err != nil {
-		return nil, fmt.Errorf("GetTVDetails() error = %v", err)
+		return nil, fmt.Errorf("deal search name and scraped season, get detail of tmdbid = %d, error = %v", info.tmdbid, err)
 	}
 	dt, err := common.ParseTmdbDateStr(tvDetail.FirstAirDate)
 	if err != nil {
-		return nil, fmt.Errorf("invalid FirstAirDate = %s", tvDetail.FirstAirDate)
+		return nil, fmt.Errorf("deal search name and scraped season, invalid FirstAirDate = %s", tvDetail.FirstAirDate)
 	}
 	newInfo = &tvEpInfo{
 		originalName: tvDetail.OriginalName,
@@ -313,26 +318,26 @@ func (p *TvEpFile) dealSearchNameAndPreSeason(tmdbService parser.TmdbService, pa
 	}
 	tvs, err := tmdbService.GetSearchTVShow(info.name, urlOptions)
 	if err != nil {
-		return nil, fmt.Errorf("GetSearchTVShow() error = %v", err)
+		return nil, fmt.Errorf("deal search name and pre seaon, name = %s, year = %d, error = %v", info.name, info.year, err)
 	}
 	if tvs.TotalResults <= 0 {
-		return nil, fmt.Errorf("GetSearchTVShow() no result")
+		return nil, fmt.Errorf("deal search name and pre seaon, name = %s, year = %d, no result", info.name, info.year)
 	}
 	if tvs.TotalResults > 1 {
 		var results []string
 		for i := 0; i < 3 && i < len(tvs.Results); i++ {
 			results = append(results, fmt.Sprintf("%s-%d", tvs.Results[i].Name, tvs.Results[i].ID))
 		}
-		return nil, fmt.Errorf("GetSearchTVShow() multiple result, first 3 results = %v", results)
+		return nil, fmt.Errorf("deal search name and pre seaon, name = %s, year = %d, multiple results, first 3 results = %v", info.name, info.year, results)
 	}
 	info.tmdbid = int(tvs.Results[0].ID)
 	tvDetail, err := tmdbService.GetTVDetails(info.tmdbid, defaultTmdbUrlOptions)
 	if err != nil {
-		return nil, fmt.Errorf("GetTVDetails() error = %v", err)
+		return nil, fmt.Errorf("deal search name and pre seaon, tmdbid = %d, error = %v", info.tmdbid, err)
 	}
 	dt, err := common.ParseTmdbDateStr(tvDetail.FirstAirDate)
 	if err != nil {
-		return nil, fmt.Errorf("invalid FirstAirDate = %s", tvDetail.FirstAirDate)
+		return nil, fmt.Errorf("deal search name and pre seaon, invalid FirstAirDate = %s", tvDetail.FirstAirDate)
 	}
 	newInfo = &tvEpInfo{
 		originalName: tvDetail.OriginalName,

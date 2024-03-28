@@ -46,3 +46,15 @@ func TestNewParserMgr(t *testing.T) {
 		t.Fatalf("NewParserMgr() pm.parsers[0] is nil")
 	}
 }
+
+func TestPusnishAddTime(t *testing.T) {
+	if punishAddTime(0).Minutes() != 0 {
+		t.Errorf("punishAddTime(0) = %v", punishAddTime(0))
+	}
+	if punishAddTime(1).Minutes() != 1 {
+		t.Errorf("punishAddTime(1) = %v", punishAddTime(1))
+	}
+	if punishAddTime(2).Minutes() != 2 {
+		t.Errorf("punishAddTime(2) = %v", punishAddTime(2))
+	}
+}

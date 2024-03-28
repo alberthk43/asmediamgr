@@ -191,10 +191,11 @@ func (pm *ParserMgr) RunParsers(opts *ParserMgrRunOpts) error {
 	var wg sync.WaitGroup
 	for _, scanDir := range opts.ScanDirs {
 		wg.Add(1)
-		err := pm.runParsersWithDir(&wg, scanDir, opts)
+		_, err := os.Stat(scanDir)
 		if err != nil {
-			return fmt.Errorf("runParsersWithDir() error: %v", err)
+			return fmt.Errorf("failed to stat scanDir: %v", err)
 		}
+		go pm.runParsersWithDir(&wg, scanDir, opts)
 	}
 	wg.Wait()
 	return nil
@@ -208,87 +209,88 @@ type failNextTime struct {
 }
 
 // runParsersWithDir runs the parsers with the dir
-func (pm *ParserMgr) runParsersWithDir(wg *sync.WaitGroup, scanDir string, opts *ParserMgrRunOpts) error {
-	_, err := os.Stat(scanDir)
-	if err != nil {
-		return fmt.Errorf("failed to stat scanDir: %v", err)
-	}
-	go func() {
-		defer wg.Done()
-		doNextTime := make(map[string]*failNextTime)
-		firstScan := true
-		for {
-			if !firstScan {
-				time.Sleep(pm.sleepDurScan)
-			} else {
-				firstScan = false
-			}
-			now := time.Now()
-			entries, err := dirinfo.ScanMotherDir(scanDir)
-			if err != nil {
-				level.Error(pm.logger).Log("msg", fmt.Sprintf("failed to scan motherDir: %v", err))
-				break
-			}
-			entriesMap := make(map[string]struct{})
-			for _, entry := range entries {
-				entriesMap[entry.Name()] = struct{}{}
-			}
-			for entryName := range doNextTime {
-				if _, ok := entriesMap[entryName]; !ok {
-					delete(doNextTime, entryName)
-				}
-			}
-			for _, entry := range entries {
-				nextTime, ok := doNextTime[entry.Name()]
-				if !ok {
-					nextTime = &failNextTime{
-						validTime: now,
-						failCnt:   0,
-					}
-					doNextTime[entry.Name()] = nextTime
-				} else {
-					nextTime.failCnt++
-					nextTime.validTime = nextTime.validTime.Add(
-						time.Duration(math.Pow(2, float64(nextTime.failCnt))) * time.Second)
-				}
-				isSucc := false
-				succParserName := ""
-				for _, parserInfo := range pm.parsers {
-					ok, err := pm.runParser(entry, parserInfo, opts)
-					if err != nil {
-						level.Error(pm.logger).Log("msg", fmt.Sprintf("parser %s runParser() error: %v", parserInfo.name, err))
-						time.Sleep(pm.sleepDurParse)
-						break
-					}
-					if ok {
-						isSucc = true
-						succParserName = parserInfo.name
-						break
-					}
-					time.Sleep(pm.sleepDurParse)
-				}
-				if isSucc {
-					level.Info(pm.logger).Log("msg", "entry parser done", "entry", entry.Name(), "parser", succParserName)
-				} else {
-					level.Warn(pm.logger).Log("msg", "entry parser done", "entry", entry.Name(), "nextTime",
-						nextTime.validTime.Add(time.Duration(math.Pow(2, float64(nextTime.failCnt)))*time.Second))
-				}
+// TODO need unittest for this function
+func (pm *ParserMgr) runParsersWithDir(wg *sync.WaitGroup, scanDir string, opts *ParserMgrRunOpts) {
+	defer wg.Done()
+	doNextTime := make(map[string]*failNextTime)
+	firstScan := true
+	for {
+		if !firstScan {
+			time.Sleep(pm.sleepDurScan)
+		} else {
+			firstScan = false
+		}
+		now := time.Now()
+		entries, err := dirinfo.ScanMotherDir(scanDir)
+		if err != nil {
+			level.Error(pm.logger).Log("msg", fmt.Sprintf("failed to scan motherDir: %v", err))
+			break
+		}
+		entriesMap := make(map[string]struct{})
+		for _, entry := range entries {
+			entriesMap[entry.Name()] = struct{}{}
+		}
+		for entryName := range doNextTime {
+			if _, ok := entriesMap[entryName]; !ok {
+				delete(doNextTime, entryName)
 			}
 		}
-	}()
-	return nil
+		for _, entry := range entries {
+			nextTime, ok := doNextTime[entry.Name()]
+			if !ok {
+				nextTime = &failNextTime{validTime: now, failCnt: 0}
+				doNextTime[entry.Name()] = nextTime
+			} else {
+				nextTime.failCnt++
+				nextTime.validTime = now.Add(punishAddTime(nextTime.failCnt))
+			}
+			parserName, err := pm.runEntry(entry, opts)
+			if err != nil {
+				level.Error(pm.logger).Log("msg", fmt.Sprintf("runEntry() error: %v", err))
+				return
+			}
+			if parserName != "" {
+				level.Info(pm.logger).Log("msg", "entry parser succ", "entry", entry.Name(), "parser", parserName)
+			} else {
+				level.Error(pm.logger).Log("msg", "entry parser fail", "entry", entry.Name(), "nextTimeAtLeast", now.Add(punishAddTime(nextTime.failCnt+1)))
+			}
+		}
+	}
+}
+
+func punishAddTime(failCnt int32) time.Duration {
+	if failCnt <= 0 {
+		return 0
+	}
+	return time.Duration(math.Pow(2, float64(failCnt-1))) * time.Minute
+}
+
+func (pm *ParserMgr) runEntry(entry *dirinfo.Entry, opts *ParserMgrRunOpts) (okParserName string, err error) {
+	firstTime := true
+	for _, parserInfo := range pm.parsers {
+		if firstTime {
+			firstTime = false
+			time.Sleep(pm.sleepDurParse)
+		}
+		ok, err := pm.runParser(entry, parserInfo, opts)
+		if err != nil {
+			level.Error(pm.logger).Log("msg", "run parser err", "err", err, "parser", parserInfo.name)
+			return "", nil
+		}
+		if ok {
+			okParserName = parserInfo.name
+			break
+		}
+	}
+	return okParserName, nil
 }
 
 // runParser runs the parser, and will recover all parser logic level panic
 func (pm *ParserMgr) runParser(entry *dirinfo.Entry, parserInfo parserInfo, opts *ParserMgrRunOpts) (ok bool, err error) {
 	defer func() {
 		if r := recover(); r != nil {
-			err = fmt.Errorf("parser %s panic: %v", parserInfo.name, r)
+			err = fmt.Errorf("panic: %v", r)
 		}
 	}()
-	ok, err = parserInfo.parser.Parse(entry, opts)
-	if err != nil {
-		return false, nil
-	}
-	return ok, nil
+	return parserInfo.parser.Parse(entry, opts)
 }
