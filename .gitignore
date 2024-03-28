@@ -3,3 +3,4 @@
 *.exe
 *.toml
 *.log
+build/bin/*
