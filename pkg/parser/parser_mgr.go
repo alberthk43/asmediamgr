@@ -213,12 +213,11 @@ type failNextTime struct {
 func (pm *ParserMgr) runParsersWithDir(wg *sync.WaitGroup, scanDir string, opts *ParserMgrRunOpts) {
 	defer wg.Done()
 	doNextTime := make(map[string]*failNextTime)
-	firstScan := true
+	firstTime := true
 	for {
-		if !firstScan {
+		if firstTime {
+			firstTime = false
 			time.Sleep(pm.sleepDurScan)
-		} else {
-			firstScan = false
 		}
 		now := time.Now()
 		entries, err := dirinfo.ScanMotherDir(scanDir)
@@ -261,6 +260,9 @@ func (pm *ParserMgr) runParsersWithDir(wg *sync.WaitGroup, scanDir string, opts 
 func punishAddTime(failCnt int32) time.Duration {
 	if failCnt <= 0 {
 		return 0
+	}
+	if failCnt >= 17 {
+		return time.Duration(65536) * time.Minute
 	}
 	return time.Duration(math.Pow(2, float64(failCnt-1))) * time.Minute
 }

@@ -57,4 +57,10 @@ func TestPusnishAddTime(t *testing.T) {
 	if punishAddTime(2).Minutes() != 2 {
 		t.Errorf("punishAddTime(2) = %v", punishAddTime(2))
 	}
+	if punishAddTime(17).Minutes() != 65536 {
+		t.Errorf("punishAddTime(17) = %v", punishAddTime(17))
+	}
+	if punishAddTime(200).Minutes() != 65536 {
+		t.Errorf("punishAddTime(200) = %v", punishAddTime(200))
+	}
 }
