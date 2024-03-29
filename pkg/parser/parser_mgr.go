@@ -213,16 +213,12 @@ type failNextTime struct {
 func (pm *ParserMgr) runParsersWithDir(wg *sync.WaitGroup, scanDir string, opts *ParserMgrRunOpts) {
 	defer wg.Done()
 	doNextTime := make(map[string]*failNextTime)
-	firstTime := true
 	for {
-		if firstTime {
-			firstTime = false
-			time.Sleep(pm.sleepDurScan)
-		}
 		now := time.Now()
 		entries, err := dirinfo.ScanMotherDir(scanDir)
 		if err != nil {
 			level.Error(pm.logger).Log("msg", fmt.Sprintf("failed to scan motherDir: %v", err))
+			time.Sleep(pm.sleepDurScan)
 			break
 		}
 		entriesMap := make(map[string]struct{})
@@ -246,6 +242,7 @@ func (pm *ParserMgr) runParsersWithDir(wg *sync.WaitGroup, scanDir string, opts 
 			parserName, err := pm.runEntry(entry, opts)
 			if err != nil {
 				level.Error(pm.logger).Log("msg", fmt.Sprintf("runEntry() error: %v", err))
+				time.Sleep(pm.sleepDurScan)
 				return
 			}
 			if parserName != "" {
@@ -254,6 +251,7 @@ func (pm *ParserMgr) runParsersWithDir(wg *sync.WaitGroup, scanDir string, opts 
 				level.Error(pm.logger).Log("msg", "entry parser fail", "entry", entry.Name(), "nextTimeAtLeast", now.Add(punishAddTime(nextTime.failCnt+1)))
 			}
 		}
+		time.Sleep(pm.sleepDurScan)
 	}
 }
 
@@ -269,21 +267,19 @@ func punishAddTime(failCnt int32) time.Duration {
 
 func (pm *ParserMgr) runEntry(entry *dirinfo.Entry, opts *ParserMgrRunOpts) (okParserName string, err error) {
 	// TODO if entry is NOT existed any more, should return "", nil
-	firstTime := true
 	for _, parserInfo := range pm.parsers {
-		if firstTime {
-			firstTime = false
-			time.Sleep(pm.sleepDurParse)
-		}
 		ok, err := pm.runParser(entry, parserInfo, opts)
 		if err != nil {
 			level.Error(pm.logger).Log("msg", "run parser err", "err", err, "parser", parserInfo.name)
+			time.Sleep(pm.sleepDurParse)
 			return "", nil
 		}
 		if ok {
 			okParserName = parserInfo.name
+			time.Sleep(pm.sleepDurParse)
 			break
 		}
+		time.Sleep(pm.sleepDurParse)
 	}
 	return okParserName, nil
 }
