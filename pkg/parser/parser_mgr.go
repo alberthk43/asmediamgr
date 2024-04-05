@@ -235,9 +235,9 @@ func (pm *ParserMgr) runParsersWithDir(wg *sync.WaitGroup, scanDir string, opts 
 			if !ok {
 				nextTime = &failNextTime{validTime: now, failCnt: 0}
 				doNextTime[entry.Name()] = nextTime
-			} else {
-				nextTime.failCnt++
-				nextTime.validTime = now.Add(punishAddTime(nextTime.failCnt))
+			}
+			if nextTime.validTime.After(now) {
+				continue
 			}
 			parserName, err := pm.runEntry(entry, opts)
 			if err != nil {
@@ -245,10 +245,12 @@ func (pm *ParserMgr) runParsersWithDir(wg *sync.WaitGroup, scanDir string, opts 
 				time.Sleep(pm.sleepDurScan)
 				return
 			}
+			nextTime.failCnt++
+			nextTime.validTime = now.Add(punishAddTime(nextTime.failCnt))
 			if parserName != "" {
 				level.Info(pm.logger).Log("msg", "entry parser succ", "entry", entry.Name(), "parser", parserName)
 			} else {
-				level.Error(pm.logger).Log("msg", "entry parser fail", "entry", entry.Name(), "nextTimeAtLeast", now.Add(punishAddTime(nextTime.failCnt+1)))
+				level.Error(pm.logger).Log("msg", "entry parser fail", "entry", entry.Name(), "nextValidTime", nextTime.validTime)
 			}
 		}
 		time.Sleep(pm.sleepDurScan)
