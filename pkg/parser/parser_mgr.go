@@ -250,7 +250,7 @@ func (pm *ParserMgr) runParsersWithDir(wg *sync.WaitGroup, scanDir string, opts 
 			if parserName != "" {
 				level.Info(pm.logger).Log("msg", "entry parser succ", "entry", entry.Name(), "parser", parserName)
 			} else {
-				level.Error(pm.logger).Log("msg", "entry parser fail", "entry", entry.Name(), "nextValidTime", nextTime.validTime)
+				level.Error(pm.logger).Log("msg", "entry parser fail", "entry", entry.Name(), "nextValidTime", nextTime.validTime, "failCnt", nextTime.failCnt)
 			}
 		}
 		time.Sleep(pm.sleepDurScan)
