@@ -84,8 +84,6 @@ func (p *MovieFile) Parse(entry *dirinfo.Entry, opts *parser.ParserMgrRunOpts) (
 		return false, nil
 	}
 	level.Info(p.logger).Log("msg", "matched", "file", entry.Name(), "name", info.name, "originalName", info.originalName, "year", info.year, "tmdbid", info.tmdbid)
-	_ = file
-	_ = movieTargetDir
 	diskService := parser.GetDefaultDiskService()
 	err = diskService.RenameMovie(&disk.MovieRenameTask{
 		OldPath:      filepath.Join(entry.MotherPath, file.RelPathToMother),

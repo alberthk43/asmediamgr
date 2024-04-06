@@ -28,6 +28,8 @@ type TmdbService interface {
 type DiskService interface {
 	RenameTvEpisode(task *disk.TvEpisodeRenameTask) error
 	RenameMovie(task *disk.MovieRenameTask) error
+	RenameMovieSubtitle(task *disk.MovieSubtitleRenameTask) error
+	MoveToTrash(task *disk.MoveToTrashTask) error
 }
 
 // DiskOpService is a service that can rename files

@@ -18,6 +18,7 @@ import (
 	"asmediamgr/pkg/parser"
 	"asmediamgr/pkg/tmdb"
 
+	_ "asmediamgr/pkg/parser/moviedir"
 	_ "asmediamgr/pkg/parser/moviefile"
 	_ "asmediamgr/pkg/parser/tvepfile"
 )
@@ -33,6 +34,7 @@ type flagConfig struct {
 	parserDirs           flagStringSlice
 	parserTargetMovieDir string
 	parserTargetTvDir    string
+	parserTargetTrash    string
 	parserScanDur        time.Duration
 	parserParseDur       time.Duration
 	tmdbProxy            string
@@ -66,6 +68,7 @@ func main() {
 	flag.Var(&cfg.parserDirs, "scandir", "parser dirs")
 	flag.StringVar(&cfg.parserTargetMovieDir, "movietarget", "movies", "target movie dir")
 	flag.StringVar(&cfg.parserTargetTvDir, "tvtarget", "tv", "target tv dir")
+	flag.StringVar(&cfg.parserTargetTrash, "trash", "trash", "trash dir")
 	flag.DurationVar(&cfg.parserScanDur, "scandur", 5*time.Minute, "scan duration")
 	flag.DurationVar(&cfg.parserParseDur, "parsedur", 1*time.Second, "parse duration")
 	flag.StringVar(&cfg.tmdbProxy, "tmdbproxy", "", "tmdb proxy")
@@ -117,6 +120,7 @@ func main() {
 		MediaTypeDirs: map[common.MediaType]string{
 			common.MediaTypeMovie: cfg.parserTargetMovieDir,
 			common.MediaTypeTv:    cfg.parserTargetTvDir,
+			common.MediaTypeTrash: cfg.parserTargetTrash,
 		},
 		SleepDurScan:  cfg.parserScanDur,
 		SleepDurParse: cfg.parserParseDur,

@@ -27,3 +27,19 @@ func IsMediaExt(ext string) bool {
 	_, ok := mediaExt[ext]
 	return ok
 }
+
+func IsTorrentFile(ext string) bool {
+	return ext == ".torrent"
+}
+
+var (
+	subtitleExt = map[string]struct{}{
+		".srt": {},
+		".ass": {},
+	}
+)
+
+func IsSubtitleExt(ext string) bool {
+	_, ok := subtitleExt[ext]
+	return ok
+}

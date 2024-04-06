@@ -45,6 +45,20 @@ type MovieRenameTask struct {
 	Tmdbid       int
 }
 
+type MovieSubtitleRenameTask struct {
+	OldPath      string
+	NewMotherDir string
+	OriginalName string
+	Year         int
+	Tmdbid       int
+	Language     string
+}
+
+type MoveToTrashTask struct {
+	Path     string
+	TrashDir string
+}
+
 func BuildNewEpisodePath(tvEpTask *TvEpisodeRenameTask) (dir, path string, err error) {
 	ext := filepath.Ext(tvEpTask.OldPath)
 	seasonDir := BuildRelTvEpDirPath(tvEpTask.OriginalName, tvEpTask.Year, tvEpTask.Tmdbid, tvEpTask.Season)
@@ -77,6 +91,22 @@ func BuildRelMovieDirPath(originalName string, year, tmdbid int) string {
 func BuildRelMovieFilePath(originalName string, year, tmdbid int, ext string) string {
 	originalName = EscapeSpecialChars(originalName)
 	return fmt.Sprintf("%s (%d) [tmdbid-%d]/%s (%d)%s", originalName, year, tmdbid, originalName, year, ext)
+}
+
+func BuildNewMovieSubtitleDir(movieTask *MovieSubtitleRenameTask) (dir, path string, err error) {
+	ext := filepath.Ext(movieTask.OldPath)
+	movieDir := BuildRelMovieDirPath(movieTask.OriginalName, movieTask.Year, movieTask.Tmdbid)
+	subtitlePath := BuildRelMovieSubtitleFilePath(movieTask.OriginalName, movieTask.Year, movieTask.Tmdbid, movieTask.Language, ext)
+	return filepath.Join(movieTask.NewMotherDir, movieDir), filepath.Join(movieTask.NewMotherDir, subtitlePath), nil
+}
+
+func BuildRelMovieSubtitleFilePath(originalName string, year, tmdbid int, lang, ext string) string {
+	originalName = EscapeSpecialChars(originalName)
+	if lang == "" {
+		return fmt.Sprintf("%s (%d) [tmdbid-%d]/%s (%d)%s", originalName, year, tmdbid, originalName, year, ext)
+	} else {
+		return fmt.Sprintf("%s (%d) [tmdbid-%d]/%s (%d).%s%s", originalName, year, tmdbid, originalName, year, lang, ext)
+	}
 }
 
 func EscapeSpecialChars(path string) string {
@@ -146,5 +176,56 @@ func (d *DiskService) RenameMovie(task *MovieRenameTask) error {
 		}
 	}
 	level.Info(d.logger).Log("msg", "rename movie", "old", task.OldPath, "new", movieFilePath, "dryrun", d.dryRunMode)
+	return nil
+}
+
+func (d *DiskService) RenameMovieSubtitle(task *MovieSubtitleRenameTask) error {
+	oldFile, err := os.Open(task.OldPath)
+	if err != nil {
+		return fmt.Errorf("Open() error = %v", err)
+	}
+	defer oldFile.Close()
+	motherDirStat, err := os.Stat(task.NewMotherDir)
+	if err != nil {
+		return fmt.Errorf("Stat() error = %v", err)
+	}
+	motherDirMode := motherDirStat.Mode()
+	movieDir, movieFilePath, err := BuildNewMovieSubtitleDir(task)
+	if err != nil {
+		return fmt.Errorf("BuildNewMovieDir() error = %v", err)
+	}
+	if !d.dryRunMode {
+		err := os.MkdirAll(movieDir, motherDirMode)
+		if err != nil {
+			return fmt.Errorf("MkdirAll() error = %v", err)
+		}
+		err = os.Rename(task.OldPath, movieFilePath)
+		if err != nil {
+			return fmt.Errorf("Rename() error = %v", err)
+		}
+	}
+	level.Info(d.logger).Log("msg", "rename movie subtitle", "old", task.OldPath, "new", movieFilePath, "dryrun", d.dryRunMode)
+	return nil
+}
+
+func (d *DiskService) MoveToTrash(task *MoveToTrashTask) error {
+	_, err := os.Stat(task.TrashDir)
+	if err != nil {
+		return fmt.Errorf("Stat() error = %v", err)
+	}
+	old, err := os.Open(task.Path)
+	if err != nil {
+		return fmt.Errorf("Open() error = %v", err)
+	}
+	defer old.Close()
+	oldBase := filepath.Base(task.Path)
+	target := filepath.Join(task.TrashDir, oldBase)
+	if !d.dryRunMode {
+		err = os.Rename(task.Path, target)
+		if err != nil {
+			return fmt.Errorf("Rename() error = %v", err)
+		}
+	}
+	level.Info(d.logger).Log("msg", "move to trash", "old", task.Path, "new", target, "dryrun", d.dryRunMode)
 	return nil
 }
