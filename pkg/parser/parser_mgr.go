@@ -241,7 +241,7 @@ func (pm *ParserMgr) runParsersWithDir(wg *sync.WaitGroup, scanDir string, opts 
 			}
 			parserName, err := pm.runEntry(entry, opts)
 			if err != nil {
-				level.Error(pm.logger).Log("msg", fmt.Sprintf("runEntry() error: %v", err))
+				level.Error(pm.logger).Log("msg", "run entry err", "entry", entry.Name(), "err", err)
 				time.Sleep(pm.sleepDurScan)
 				return
 			}
@@ -250,7 +250,7 @@ func (pm *ParserMgr) runParsersWithDir(wg *sync.WaitGroup, scanDir string, opts 
 			if parserName != "" {
 				level.Info(pm.logger).Log("msg", "entry parser succ", "entry", entry.Name(), "parser", parserName)
 			} else {
-				level.Error(pm.logger).Log("msg", "entry parser fail", "entry", entry.Name(), "nextValidTime", nextTime.validTime, "failCnt", nextTime.failCnt)
+				level.Warn(pm.logger).Log("msg", "entry parser fail", "entry", entry.Name(), "nextValidTime", nextTime.validTime, "failCnt", nextTime.failCnt)
 			}
 		}
 		time.Sleep(pm.sleepDurScan)
@@ -272,7 +272,7 @@ func (pm *ParserMgr) runEntry(entry *dirinfo.Entry, opts *ParserMgrRunOpts) (okP
 	for _, parserInfo := range pm.parsers {
 		ok, err := pm.runParser(entry, parserInfo, opts)
 		if err != nil {
-			level.Error(pm.logger).Log("msg", "run parser err", "err", err, "parser", parserInfo.name)
+			level.Error(pm.logger).Log("msg", "run parser err", "parser", parserInfo.name, "err", err)
 			time.Sleep(pm.sleepDurParse)
 			return "", nil
 		}

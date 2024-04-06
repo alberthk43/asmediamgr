@@ -94,19 +94,19 @@ func (p *MovieDir) Parse(entry *dirinfo.Entry, opts *parser.ParserMgrRunOpts) (o
 		return false, nil
 	}
 	if len(entry.FileList) <= 0 {
-		return false, fmt.Errorf("no files in dir")
+		return false, fmt.Errorf("no files in dir, entry: %s", entry.Name())
 	}
 	movieTargetDir, ok := opts.MediaTypeDirs[common.MediaTypeMovie]
 	if !ok {
-		return false, fmt.Errorf("movie target dir not found")
+		return false, fmt.Errorf("movie target dir not found, entry: %s", entry.Name())
 	}
 	trashDir, ok := opts.MediaTypeDirs[common.MediaTypeTrash]
 	if !ok {
-		return false, fmt.Errorf("trash dir not found")
+		return false, fmt.Errorf("trash dir not found, entry: %s", entry.Name())
 	}
 	info, err := p.parse(entry)
 	if err != nil {
-		return false, err
+		return false, fmt.Errorf("failed to parse: %w, entry: %s", err, entry.Name())
 	}
 	if info == nil {
 		return false, nil
@@ -121,7 +121,7 @@ func (p *MovieDir) Parse(entry *dirinfo.Entry, opts *parser.ParserMgrRunOpts) (o
 		Tmdbid:       info.tmdbid,
 	})
 	if err != nil {
-		return false, fmt.Errorf("failed to rename movie: %w", err)
+		return false, fmt.Errorf("failed to rename movie: %w, entry: %s", err, entry.Name())
 	}
 	for lang, subtitleFile := range info.subtitleFiles {
 		err = diskService.RenameMovieSubtitle(&disk.MovieSubtitleRenameTask{
@@ -133,7 +133,7 @@ func (p *MovieDir) Parse(entry *dirinfo.Entry, opts *parser.ParserMgrRunOpts) (o
 			Language:     lang,
 		})
 		if err != nil {
-			level.Warn(p.logger).Log("msg", "failed to rename subtitle", "lang", lang, "err", err)
+			level.Warn(p.logger).Log("msg", "failed to rename subtitle", "lang", lang, "err", err, "entry", entry.Name())
 			continue
 		}
 	}
@@ -142,7 +142,7 @@ func (p *MovieDir) Parse(entry *dirinfo.Entry, opts *parser.ParserMgrRunOpts) (o
 		TrashDir: trashDir,
 	})
 	if err != nil {
-		level.Warn(p.logger).Log("msg", "failed to move to trash", "err", err)
+		level.Warn(p.logger).Log("msg", "failed to move to trash", "err", err, "entry", entry.Name())
 	}
 	return ok, nil
 }

@@ -141,6 +141,9 @@ func (d *DiskService) RenameTvEpisode(task *TvEpisodeRenameTask) error {
 		if err != nil {
 			return fmt.Errorf("MkdirAll() error = %v", err)
 		}
+		if fileExists(epFilePath) {
+			return fmt.Errorf("file already exists: %s", epFilePath)
+		}
 		err = os.Rename(task.OldPath, epFilePath)
 		if err != nil {
 			return fmt.Errorf("Rename() error = %v", err)
@@ -148,6 +151,11 @@ func (d *DiskService) RenameTvEpisode(task *TvEpisodeRenameTask) error {
 	}
 	level.Info(d.logger).Log("msg", "rename tv episode", "old", task.OldPath, "new", epFilePath, "dryrun", d.dryRunMode)
 	return nil
+}
+
+func fileExists(filename string) bool {
+	_, err := os.Stat(filename)
+	return !os.IsNotExist(err)
 }
 
 func (d *DiskService) RenameMovie(task *MovieRenameTask) error {
@@ -170,6 +178,9 @@ func (d *DiskService) RenameMovie(task *MovieRenameTask) error {
 		if err != nil {
 			return fmt.Errorf("MkdirAll() error = %v", err)
 		}
+		if fileExists(movieFilePath) {
+			return fmt.Errorf("file already exists: %s", movieFilePath)
+		}
 		err = os.Rename(task.OldPath, movieFilePath)
 		if err != nil {
 			return fmt.Errorf("Rename() error = %v", err)
@@ -190,7 +201,7 @@ func (d *DiskService) RenameMovieSubtitle(task *MovieSubtitleRenameTask) error {
 		return fmt.Errorf("Stat() error = %v", err)
 	}
 	motherDirMode := motherDirStat.Mode()
-	movieDir, movieFilePath, err := BuildNewMovieSubtitleDir(task)
+	movieDir, movieSubtitleFilePath, err := BuildNewMovieSubtitleDir(task)
 	if err != nil {
 		return fmt.Errorf("BuildNewMovieDir() error = %v", err)
 	}
@@ -199,12 +210,15 @@ func (d *DiskService) RenameMovieSubtitle(task *MovieSubtitleRenameTask) error {
 		if err != nil {
 			return fmt.Errorf("MkdirAll() error = %v", err)
 		}
-		err = os.Rename(task.OldPath, movieFilePath)
+		if fileExists(movieSubtitleFilePath) {
+			return fmt.Errorf("file already exists: %s", movieSubtitleFilePath)
+		}
+		err = os.Rename(task.OldPath, movieSubtitleFilePath)
 		if err != nil {
 			return fmt.Errorf("Rename() error = %v", err)
 		}
 	}
-	level.Info(d.logger).Log("msg", "rename movie subtitle", "old", task.OldPath, "new", movieFilePath, "dryrun", d.dryRunMode)
+	level.Info(d.logger).Log("msg", "rename movie subtitle", "old", task.OldPath, "new", movieSubtitleFilePath, "dryrun", d.dryRunMode)
 	return nil
 }
 
@@ -219,13 +233,16 @@ func (d *DiskService) MoveToTrash(task *MoveToTrashTask) error {
 	}
 	defer old.Close()
 	oldBase := filepath.Base(task.Path)
-	target := filepath.Join(task.TrashDir, oldBase)
+	trashTarget := filepath.Join(task.TrashDir, oldBase)
 	if !d.dryRunMode {
-		err = os.Rename(task.Path, target)
+		if fileExists(trashTarget) {
+			return fmt.Errorf("file already exists: %s", trashTarget)
+		}
+		err = os.Rename(task.Path, trashTarget)
 		if err != nil {
 			return fmt.Errorf("Rename() error = %v", err)
 		}
 	}
-	level.Info(d.logger).Log("msg", "move to trash", "old", task.Path, "new", target, "dryrun", d.dryRunMode)
+	level.Info(d.logger).Log("msg", "move to trash", "old", task.Path, "new", trashTarget, "dryrun", d.dryRunMode)
 	return nil
 }
