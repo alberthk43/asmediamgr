@@ -4,4 +4,4 @@
 *.toml
 *.log
 build/bin/*
-__debug__*
+__debug_bin*
