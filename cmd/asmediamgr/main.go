@@ -18,6 +18,7 @@ import (
 	"asmediamgr/pkg/parser"
 	"asmediamgr/pkg/tmdb"
 
+	_ "asmediamgr/pkg/parser/moviefile"
 	_ "asmediamgr/pkg/parser/tvepfile"
 )
 

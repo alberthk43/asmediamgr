@@ -27,6 +27,7 @@ type TmdbService interface {
 // DiskService is a service that can do real disk operations, such as rename files, etc
 type DiskService interface {
 	RenameTvEpisode(task *disk.TvEpisodeRenameTask) error
+	RenameMovie(task *disk.MovieRenameTask) error
 }
 
 // DiskOpService is a service that can rename files

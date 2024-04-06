@@ -40,11 +40,11 @@ type tvEpInfo struct {
 }
 
 type PatternConfig struct {
-	PatternStr string `toml:"pattern"`
-	Pattern    *regexp.Regexp
+	PatternStr string   `toml:"pattern"`
 	Tmdbid     int      `toml:"tmdbid"`
 	Season     int      `toml:"season"`
 	OptNames   []string `toml:"opt_names"`
+	Pattern    *regexp.Regexp
 	Opts       []PatternOpt
 }
 
@@ -134,8 +134,8 @@ func (p *TvEpFile) Parse(entry *dirinfo.Entry, opts *parser.ParserMgrRunOpts) (o
 }
 
 func (p *TvEpFile) parse(entry *dirinfo.Entry) (info *tvEpInfo, err error) {
-	for _, patter := range p.patterns {
-		info, err = p.patternMatch(entry, patter)
+	for _, pattern := range p.patterns {
+		info, err = p.patternMatch(entry, pattern)
 		if err != nil {
 			return nil, err // error, stop all parsers
 		}
