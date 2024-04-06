@@ -113,15 +113,17 @@ func (p *MovieDir) Parse(entry *dirinfo.Entry, opts *parser.ParserMgrRunOpts) (o
 	}
 	level.Info(p.logger).Log("msg", "matched", "dir", entry.Name(), "name", info.name, "originalName", info.originalName, "year", info.year, "tmdbid", info.tmdbid, "subs", len(info.subtitleFiles))
 	diskService := parser.GetDefaultDiskService()
-	err = diskService.RenameMovie(&disk.MovieRenameTask{
-		OldPath:      filepath.Join(entry.MotherPath, info.mediaFile.RelPathToMother),
-		NewMotherDir: movieTargetDir,
-		OriginalName: info.originalName,
-		Year:         info.year,
-		Tmdbid:       info.tmdbid,
-	})
-	if err != nil {
-		return false, fmt.Errorf("failed to rename movie: %w, entry: %s", err, entry.Name())
+	if info.mediaFile != nil {
+		err = diskService.RenameMovie(&disk.MovieRenameTask{
+			OldPath:      filepath.Join(entry.MotherPath, info.mediaFile.RelPathToMother),
+			NewMotherDir: movieTargetDir,
+			OriginalName: info.originalName,
+			Year:         info.year,
+			Tmdbid:       info.tmdbid,
+		})
+		if err != nil {
+			return false, fmt.Errorf("failed to rename movie: %w, entry: %s", err, entry.Name())
+		}
 	}
 	for lang, subtitleFile := range info.subtitleFiles {
 		err = diskService.RenameMovieSubtitle(&disk.MovieSubtitleRenameTask{
@@ -222,13 +224,12 @@ func (p *MovieDir) matchPattern(entry *dirinfo.Entry, pattern *Pattern) (info *m
 			}
 		}
 	}
-	if len(mediaFiles) <= 0 {
-		return nil, fmt.Errorf("no media files found")
-	}
 	if len(mediaFiles) > 1 {
 		return nil, fmt.Errorf("multiple media files found")
 	}
-	info.mediaFile = mediaFiles[0]
+	if len(mediaFiles) == 1 {
+		info.mediaFile = mediaFiles[0]
+	}
 	info.subtitleFiles = subtitleFils
 	tmdbService := parser.GetDefaultTmdbService()
 	if info.tmdbid <= 0 {
