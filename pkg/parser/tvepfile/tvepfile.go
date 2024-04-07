@@ -361,10 +361,16 @@ func OptChineseSeasonName(entry *dirinfo.Entry, info *tvEpInfo) error {
 	if len(groups) == 0 {
 		return nil
 	}
-	chineseNum := groups[2]
-	n, ok := common.ChineseToNum(chineseNum)
-	if !ok {
-		return fmt.Errorf("ChineseToNum() not chinese number = %s", chineseNum)
+	numStr := groups[2]
+	var err error
+	var n int
+	n, err = strconv.Atoi(numStr)
+	if err != nil {
+		var ok bool
+		n, ok = common.ChineseToNum(numStr)
+		if !ok {
+			return fmt.Errorf("ChineseToNum() not chinese number = %s", numStr)
+		}
 	}
 	info.season = int(n)
 	info.name = groups[1]

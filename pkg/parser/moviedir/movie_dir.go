@@ -242,7 +242,7 @@ func (p *MovieDir) matchPattern(entry *dirinfo.Entry, pattern *Pattern) (info *m
 			return nil, err
 		}
 		if results.TotalResults == 0 {
-			return nil, fmt.Errorf("no movie found")
+			return nil, fmt.Errorf("no movie found, name: %s, year: %d", info.name, info.year)
 		}
 		if results.TotalResults > 1 {
 			var hits []string
