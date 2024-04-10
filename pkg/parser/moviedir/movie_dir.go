@@ -171,12 +171,6 @@ func (p *MovieDir) parse(entry *dirinfo.Entry) (*movieInfo, error) {
 	return nil, nil
 }
 
-var (
-	defaultTmdbUrlOptions = map[string]string{
-		"include_adult": "true",
-	}
-)
-
 func (p *MovieDir) matchPattern(entry *dirinfo.Entry, pattern *Pattern) (info *movieInfo, err error) {
 	groups := pattern.DirPattern.FindStringSubmatch(entry.Name())
 	if len(groups) <= 0 {
@@ -233,7 +227,7 @@ func (p *MovieDir) matchPattern(entry *dirinfo.Entry, pattern *Pattern) (info *m
 	info.subtitleFiles = subtitleFils
 	tmdbService := parser.GetDefaultTmdbService()
 	if info.tmdbid <= 0 {
-		searchOpts := defaultTmdbUrlOptions
+		searchOpts := common.DefaultTmdbSearchOpts
 		if info.year > 0 {
 			searchOpts["year"] = strconv.Itoa(info.year)
 		}
@@ -253,7 +247,7 @@ func (p *MovieDir) matchPattern(entry *dirinfo.Entry, pattern *Pattern) (info *m
 		}
 		info.tmdbid = int(results.Results[0].ID)
 	}
-	detail, err := tmdbService.GetMovieDetails(info.tmdbid, defaultTmdbUrlOptions)
+	detail, err := tmdbService.GetMovieDetails(info.tmdbid, common.DefaultTmdbSearchOpts)
 	if err != nil {
 		return nil, err
 	}

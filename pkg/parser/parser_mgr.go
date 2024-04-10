@@ -5,6 +5,7 @@ import (
 	"math"
 	"os"
 	"path/filepath"
+	"runtime/debug"
 	"sort"
 	"sync"
 	"time"
@@ -290,6 +291,8 @@ func (pm *ParserMgr) runEntry(entry *dirinfo.Entry, opts *ParserMgrRunOpts) (okP
 func (pm *ParserMgr) runParser(entry *dirinfo.Entry, parserInfo parserInfo, opts *ParserMgrRunOpts) (ok bool, err error) {
 	defer func() {
 		if r := recover(); r != nil {
+			fmt.Printf("panic: %v\n", r)
+			fmt.Printf("stack: %s\n", string(debug.Stack()))
 			err = fmt.Errorf("panic: %v", r)
 		}
 	}()

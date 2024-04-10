@@ -37,6 +37,17 @@ type TvEpisodeRenameTask struct {
 	Episode      int
 }
 
+type TvSubtitleRenameTask struct {
+	OldPath      string
+	NewMotherDir string
+	OriginalName string
+	Year         int
+	Tmdbid       int
+	Season       int
+	Episode      int
+	Language     string
+}
+
 type MovieRenameTask struct {
 	OldPath      string
 	NewMotherDir string
@@ -74,6 +85,22 @@ func BuildRelTvEpDirPath(originalName string, year, tmdbid, season int) string {
 func BuildRelTvEpPath(originalName string, year, tmdbid, season, episode int, ext string) string {
 	originalName = EscapeSpecialChars(originalName)
 	return fmt.Sprintf("%s (%d) [tmdbid-%d]/Season %d/S%02dE%02d%s", originalName, year, tmdbid, season, season, episode, ext)
+}
+
+func BuildNewTvSubtitlePath(tvSubTask *TvSubtitleRenameTask) (dir, path string, err error) {
+	ext := filepath.Ext(tvSubTask.OldPath)
+	seasonDir := BuildRelTvEpDirPath(tvSubTask.OriginalName, tvSubTask.Year, tvSubTask.Tmdbid, tvSubTask.Season)
+	subtileFile := BuildRelTvSubtitlePath(tvSubTask.OriginalName, tvSubTask.Year, tvSubTask.Tmdbid, tvSubTask.Season, tvSubTask.Episode, tvSubTask.Language, ext)
+	return filepath.Join(tvSubTask.NewMotherDir, seasonDir), filepath.Join(tvSubTask.NewMotherDir, subtileFile), nil
+}
+
+func BuildRelTvSubtitlePath(originalName string, year, tmdbid, season, episode int, lang, ext string) string {
+	originalName = EscapeSpecialChars(originalName)
+	if lang == "" {
+		return fmt.Sprintf("%s (%d) [tmdbid-%d]/Season %d/S%02dE%02d%s", originalName, year, tmdbid, season, season, episode, ext)
+	} else {
+		return fmt.Sprintf("%s (%d) [tmdbid-%d]/Season %d/S%02dE%02d.%s%s", originalName, year, tmdbid, season, season, episode, lang, ext)
+	}
 }
 
 func BuildNewMovieDir(movieTask *MovieRenameTask) (dir, path string, err error) {
@@ -121,6 +148,11 @@ func EscapeSpecialChars(path string) string {
 	return path
 }
 
+func fileExists(filename string) bool {
+	_, err := os.Stat(filename)
+	return !os.IsNotExist(err)
+}
+
 func (d *DiskService) RenameTvEpisode(task *TvEpisodeRenameTask) error {
 	oldFile, err := os.Open(task.OldPath)
 	if err != nil {
@@ -153,9 +185,36 @@ func (d *DiskService) RenameTvEpisode(task *TvEpisodeRenameTask) error {
 	return nil
 }
 
-func fileExists(filename string) bool {
-	_, err := os.Stat(filename)
-	return !os.IsNotExist(err)
+func (d *DiskService) RenameTvSubtitle(task *TvSubtitleRenameTask) error {
+	oldFile, err := os.Open(task.OldPath)
+	if err != nil {
+		return fmt.Errorf("Open() error = %v", err)
+	}
+	defer oldFile.Close()
+	motherDirStat, err := os.Stat(task.NewMotherDir)
+	if err != nil {
+		return fmt.Errorf("Stat() error = %v", err)
+	}
+	motherDirMode := motherDirStat.Mode()
+	seasonDir, subtitleFilePath, err := BuildNewTvSubtitlePath(task)
+	if err != nil {
+		return fmt.Errorf("BuildNewTvSubtitlePath() error = %v", err)
+	}
+	if !d.dryRunMode {
+		err := os.MkdirAll(seasonDir, motherDirMode)
+		if err != nil {
+			return fmt.Errorf("MkdirAll() error = %v", err)
+		}
+		if fileExists(subtitleFilePath) {
+			return fmt.Errorf("file already exists: %s", subtitleFilePath)
+		}
+		err = os.Rename(task.OldPath, subtitleFilePath)
+		if err != nil {
+			return fmt.Errorf("Rename() error = %v", err)
+		}
+	}
+	level.Info(d.logger).Log("msg", "rename tv subtitle", "old", task.OldPath, "new", subtitleFilePath, "dryrun", d.dryRunMode)
+	return nil
 }
 
 func (d *DiskService) RenameMovie(task *MovieRenameTask) error {

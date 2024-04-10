@@ -20,6 +20,7 @@ import (
 
 	_ "asmediamgr/pkg/parser/moviedir"
 	_ "asmediamgr/pkg/parser/moviefile"
+	_ "asmediamgr/pkg/parser/tvdir"
 	_ "asmediamgr/pkg/parser/tvepfile"
 )
 
