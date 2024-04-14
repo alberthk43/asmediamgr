@@ -39,6 +39,7 @@ type flagConfig struct {
 	parserScanDur        time.Duration
 	parserParseDur       time.Duration
 	tmdbProxy            string
+	tmdbCacheDur         time.Duration
 	dryRun               bool
 }
 
@@ -73,6 +74,7 @@ func main() {
 	flag.DurationVar(&cfg.parserScanDur, "scandur", 5*time.Minute, "scan duration")
 	flag.DurationVar(&cfg.parserParseDur, "parsedur", 1*time.Second, "parse duration")
 	flag.StringVar(&cfg.tmdbProxy, "tmdbproxy", "", "tmdb proxy")
+	flag.DurationVar(&cfg.tmdbCacheDur, "tmdbcachedur", 6*time.Hour, "tmdb cache duration")
 	flag.BoolVar(&cfg.dryRun, "dryrun", false, "dry run")
 	flag.Parse()
 
@@ -97,8 +99,10 @@ func main() {
 		os.Exit(1)
 	}
 
-	if tmdbService, err := tmdb.NewTmdbService(&tmdb.Configuration{ // TODO add logger to tmdb, and add opts to create tmdb
-		Sock5Proxy: cfg.tmdbProxy,
+	if tmdbService, err := tmdb.NewTmdbService(&tmdb.Configuration{
+		Logger:        logger,
+		Sock5Proxy:    cfg.tmdbProxy,
+		ValidCacheDur: cfg.tmdbCacheDur,
 	}); err != nil {
 		fmt.Fprintf(os.Stderr, "failed to create tmdb service: %v\n", err)
 		os.Exit(1)

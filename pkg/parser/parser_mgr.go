@@ -21,8 +21,8 @@ import (
 
 // TmdbService is a service that can search tmdb
 type TmdbService interface {
-	GetMovieDetails(id int, urlOptions map[string]string) (*tmdb.MovieDetails, error)
 	GetSearchMovies(query string, urlOptions map[string]string) (*tmdb.SearchMovies, error)
+	GetMovieDetails(id int, urlOptions map[string]string) (*tmdb.MovieDetails, error)
 	GetSearchTVShow(query string, urlOptions map[string]string) (*tmdb.SearchTVShows, error)
 	GetTVDetails(id int, urlOptions map[string]string) (*tmdb.TVDetails, error)
 }
