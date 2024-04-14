@@ -350,7 +350,7 @@ func (p *TvEpFile) dealSearchNameAndPreSeason(tmdbService parser.TmdbService, pa
 }
 
 var (
-	chineseSeasonNamePattern = regexp.MustCompile(`(?P<name>.*) 第(?P<seasonch>.*)季.*`)
+	chineseSeasonNamePattern = regexp.MustCompile(`(?P<name>.*)第(?P<seasonch>.*)季.*`)
 )
 
 func OptChineseSeasonName(entry *dirinfo.Entry, info *tvEpInfo) error {

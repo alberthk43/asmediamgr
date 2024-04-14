@@ -10,12 +10,31 @@ import (
 	"sync"
 	"time"
 
+	tmdb "github.com/cyruzin/golang-tmdb"
 	"github.com/go-kit/log"
 	"github.com/go-kit/log/level"
 
 	"asmediamgr/pkg/common"
 	"asmediamgr/pkg/dirinfo"
+	"asmediamgr/pkg/disk"
 )
+
+// TmdbService is a service that can search tmdb
+type TmdbService interface {
+	GetMovieDetails(id int, urlOptions map[string]string) (*tmdb.MovieDetails, error)
+	GetSearchMovies(query string, urlOptions map[string]string) (*tmdb.SearchMovies, error)
+	GetSearchTVShow(query string, urlOptions map[string]string) (*tmdb.SearchTVShows, error)
+	GetTVDetails(id int, urlOptions map[string]string) (*tmdb.TVDetails, error)
+}
+
+// DiskService is a service that can do real disk operations, such as rename files, etc
+type DiskService interface {
+	RenameTvEpisode(task *disk.TvEpisodeRenameTask) error
+	RenameTvSubtitle(task *disk.TvSubtitleRenameTask) error
+	RenameMovie(task *disk.MovieRenameTask) error
+	RenameMovieSubtitle(task *disk.MovieSubtitleRenameTask) error
+	MoveToTrash(task *disk.MoveToTrashTask) error
+}
 
 var (
 	// RegisteredParsers is a map of registered parsers
