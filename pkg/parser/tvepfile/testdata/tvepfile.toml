@@ -1,0 +1,5 @@
+[[patterns]]
+pattern = ".*"
+tmdbid = 123456789
+Season = 2
+opt_names = ["chinese_season_name", "future_feature"]

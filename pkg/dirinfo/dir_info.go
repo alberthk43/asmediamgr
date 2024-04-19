@@ -27,6 +27,20 @@ type Entry struct {
 	FileList   []*File
 }
 
+func (e *Entry) Name() string {
+	switch e.Type {
+	case FileEntry:
+		if len(e.FileList) != 1 || e.FileList[0] == nil {
+			return ""
+		}
+		return e.FileList[0].Name
+	case DirEntry:
+		return e.MyDirPath
+	default:
+		return ""
+	}
+}
+
 func ScanMotherDir(motherPath string) ([]*Entry, error) {
 	// check motherDir is dir
 	motherDir, err := os.Open(motherPath)
