@@ -268,6 +268,10 @@ func (st *Stat) statMovieDir(entries []*dirinfo.Entry) error {
 
 func (st *Stat) statMovieEntry(entry *dirinfo.Entry) error {
 	tmdbid := getTmdbidFromEntry(entry)
+	if tmdbid <= 0 {
+		level.Error(st.logger).Log("msg", "failed to get tmdbid from entry", "path", filepath.Join(entry.MotherPath, entry.MyDirPath))
+		return fmt.Errorf("failed to get tmdbid from entry")
+	}
 	mStat, ok := st.movieStats[tmdbid]
 	if !ok {
 		mStat = &movieStat{tmdbid: tmdbid}
@@ -308,6 +312,10 @@ func (st *Stat) statTvDir(entrys []*dirinfo.Entry) error {
 
 func (st *Stat) statTvEntry(entry *dirinfo.Entry) error {
 	tmdbid := getTmdbidFromEntry(entry)
+	if tmdbid <= 0 {
+		level.Error(st.logger).Log("msg", "failed to get tmdbid from entry", "path", filepath.Join(entry.MotherPath, entry.MyDirPath))
+		return fmt.Errorf("failed to get tmdbid from entry")
+	}
 	tStat, ok := st.tvStats[tmdbid]
 	if !ok {
 		tStat = &tvStat{tmdbid: tmdbid}
@@ -351,12 +359,13 @@ func (st *Stat) getTotalMovieFiles(entry *dirinfo.Entry) []*fileInfo {
 			continue
 		}
 		segments := strings.Split(file.RelPathToMother, string(filepath.Separator))
-		if len(segments) == 2 {
-			fileInfos = append(fileInfos, &fileInfo{
-				path: filepath.Join(entry.MotherPath, file.RelPathToMother),
-				size: file.BytesNum,
-			})
+		if len(segments) != 2 {
+			continue
 		}
+		fileInfos = append(fileInfos, &fileInfo{
+			path: filepath.Join(entry.MotherPath, file.RelPathToMother),
+			size: file.BytesNum,
+		})
 	}
 	return fileInfos
 }
