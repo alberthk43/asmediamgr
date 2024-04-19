@@ -226,3 +226,11 @@ func buildQueryKey(query string, urlOptions map[string]string) queryKey {
 		plainUrlOpts: str,
 	}
 }
+
+func BuildTmdbMovieLink(id int) string {
+	return fmt.Sprintf("https://www.themoviedb.org/movie/%d", id)
+}
+
+func BuildTmdbTvLink(id int) string {
+	return fmt.Sprintf("https://www.themoviedb.org/tv/%d", id)
+}

@@ -135,16 +135,3 @@ func dirEntry(sub fs.DirEntry, motherPath string) (*Entry, error) {
 	})
 	return e, nil
 }
-
-func SizeToStr(size int64) string {
-	if size < 1024 {
-		return fmt.Sprintf("%dB", size)
-	}
-	if size < 1024*1024 {
-		return fmt.Sprintf("%.2fKB", float64(size)/1024)
-	}
-	if size < 1024*1024*1024 {
-		return fmt.Sprintf("%.2fMB", float64(size)/1024/1024)
-	}
-	return fmt.Sprintf("%.2fGB", float64(size)/1024/1024/1024)
-}

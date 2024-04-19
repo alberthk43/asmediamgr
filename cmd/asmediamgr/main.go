@@ -16,7 +16,9 @@ import (
 	"asmediamgr/pkg/common/aslog"
 	"asmediamgr/pkg/disk"
 	"asmediamgr/pkg/parser"
+	"asmediamgr/pkg/stat"
 	"asmediamgr/pkg/tmdb"
+	"asmediamgr/pkg/utils"
 
 	_ "asmediamgr/pkg/parser/moviedir"
 	_ "asmediamgr/pkg/parser/moviefile"
@@ -26,21 +28,29 @@ import (
 
 // flagConfig is the configuration for the program
 type flagConfig struct {
-	configFile           string
-	parserConfigDir      string
-	loglv                string
-	aslogConfig          aslog.Config
-	enableParsers        flagStringSlice
-	disableParsers       flagStringSlice
-	parserDirs           flagStringSlice
-	parserTargetMovieDir string
-	parserTargetTvDir    string
-	parserTargetTrash    string
-	parserScanDur        time.Duration
-	parserParseDur       time.Duration
-	tmdbProxy            string
-	tmdbCacheDur         time.Duration
-	dryRun               bool
+	configFile                  string
+	parserConfigDir             string
+	loglv                       string
+	aslogConfig                 aslog.Config
+	enableParsers               flagStringSlice
+	disableParsers              flagStringSlice
+	parserDirs                  flagStringSlice
+	parserTargetMovieDir        string
+	parserTargetTvDir           string
+	parserTargetTrash           string
+	parserScanDur               time.Duration
+	parserParseDur              time.Duration
+	tmdbProxy                   string
+	tmdbCacheDur                time.Duration
+	dryRun                      bool
+	statInterval                time.Duration
+	statInitWait                time.Duration
+	statMovieDirs               flagStringSlice
+	statTvDirs                  flagStringSlice
+	statLargeMovieSize          string
+	statLargeMovieSizeBytes     int64
+	statLargeTvEpisodeSize      string
+	statLargeTvEpisodeSizeBytes int64
 }
 
 type flagStringSlice []string
@@ -76,7 +86,28 @@ func main() {
 	flag.StringVar(&cfg.tmdbProxy, "tmdbproxy", "", "tmdb proxy")
 	flag.DurationVar(&cfg.tmdbCacheDur, "tmdbcachedur", 6*time.Hour, "tmdb cache duration")
 	flag.BoolVar(&cfg.dryRun, "dryrun", false, "dry run")
+	flag.DurationVar(&cfg.statInterval, "statinterval", 6*time.Hour, "stat interval")
+	flag.DurationVar(&cfg.statInitWait, "statinitwait", 10*time.Second, "stat init wait")
+	flag.Var(&cfg.statMovieDirs, "statmoviedir", "stat movie dirs")
+	flag.Var(&cfg.statTvDirs, "stattvdir", "stat tv dirs")
+	flag.StringVar(&cfg.statLargeMovieSize, "statlargemoviesize", "10G", "stat large movie size")
+	flag.StringVar(&cfg.statLargeTvEpisodeSize, "statlargeepisodesize", "5G", "stat large tv episode size")
 	flag.Parse()
+
+	cfg.statMovieDirs = append(cfg.statMovieDirs, cfg.parserTargetMovieDir)
+	cfg.statTvDirs = append(cfg.statTvDirs, cfg.parserTargetTvDir)
+	if n, err := utils.SizeStringToBytesNum(cfg.statLargeMovieSize); err != nil {
+		fmt.Fprintf(os.Stderr, "failed to parse large movie size: %v\n", err)
+		os.Exit(1)
+	} else {
+		cfg.statLargeMovieSizeBytes = n
+	}
+	if n, err := utils.SizeStringToBytesNum(cfg.statLargeTvEpisodeSize); err != nil {
+		fmt.Fprintf(os.Stderr, "failed to parse large episode size: %v\n", err)
+		os.Exit(1)
+	} else {
+		cfg.statLargeTvEpisodeSizeBytes = n
+	}
 
 	loglvVal, err := level.Parse(cfg.loglv) // TODO test log level is working OR not
 	if err != nil {
@@ -130,6 +161,22 @@ func main() {
 		SleepDurScan:  cfg.parserScanDur,
 		SleepDurParse: cfg.parserParseDur,
 	}
+
+	statOpts := &stat.StatOpts{
+		Logger:             log.With(logger, "component", "stat"),
+		Interval:           cfg.statInterval,
+		InitWait:           cfg.statInitWait,
+		MovieDirs:          cfg.statMovieDirs,
+		TvDirs:             cfg.statTvDirs,
+		LargeMovieSize:     cfg.statLargeMovieSizeBytes,
+		LargeTvEpisodeSize: cfg.statLargeTvEpisodeSizeBytes,
+	}
+	stat, err := stat.NewStat(statOpts)
+	if err != nil {
+		fmt.Fprintf(os.Stderr, "failed to create stat: %v\n", err)
+		os.Exit(1)
+	}
+
 	var wg sync.WaitGroup
 	wg.Add(1)
 	go func() {
@@ -137,6 +184,15 @@ func main() {
 		err = parserMgr.RunParsers(parserMgrRunOpts)
 		if err != nil {
 			fmt.Fprintf(os.Stderr, "failed to run parsers: %v\n", err)
+			os.Exit(1)
+		}
+	}()
+	wg.Add(1)
+	go func() {
+		defer wg.Done()
+		err = stat.Run()
+		if err != nil {
+			fmt.Fprintf(os.Stderr, "failed to run stat: %v\n", err)
 			os.Exit(1)
 		}
 	}()

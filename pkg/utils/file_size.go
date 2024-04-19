@@ -42,3 +42,16 @@ func SizeStringToBytesNum(str string) (int64, error) {
 	}
 	return 0, fmt.Errorf("invalid size string: %s", str)
 }
+
+func BytesNumToSizeString(size int64) string {
+	if size < 1024 {
+		return fmt.Sprintf("%dB", size)
+	}
+	if size < 1024*1024 {
+		return fmt.Sprintf("%.2fKB", float64(size)/1024)
+	}
+	if size < 1024*1024*1024 {
+		return fmt.Sprintf("%.2fMB", float64(size)/1024/1024)
+	}
+	return fmt.Sprintf("%.2fGB", float64(size)/1024/1024/1024)
+}
