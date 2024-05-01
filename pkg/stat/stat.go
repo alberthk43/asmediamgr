@@ -36,10 +36,12 @@ type Stat struct {
 	movieDirs []string
 
 	movieStats    map[int]*movieStat
+	movieStatErrs []StatErr
 	movieCheckers []movieChecker
 
 	tvStats    map[int]*tvStat
 	tvCheckers []tvChecker
+	tvStatErrs []StatErr
 }
 
 const (
@@ -183,6 +185,18 @@ func (st *Stat) runMovieCheckers() error {
 	if err != nil {
 		return err
 	}
+	for _, statErr := range st.movieStatErrs {
+		content, err := statErr.toMarkdownContent()
+		if err != nil {
+			level.Error(st.logger).Log("msg", "movie stat error to markdown content failed", "err", err)
+			continue
+		}
+		_, err = mdFile.WriteString(content)
+		if err != nil {
+			level.Error(st.logger).Log("msg", "write to markdown file failed", "err", err)
+			continue
+		}
+	}
 	for _, checker := range st.movieCheckers {
 		for _, mStat := range st.movieStats {
 			statErr := checker.check(mStat)
@@ -214,6 +228,18 @@ func (st *Stat) runTvCheckers() error {
 	if err != nil {
 		return err
 	}
+	for _, statErr := range st.tvStatErrs {
+		content, err := statErr.toMarkdownContent()
+		if err != nil {
+			level.Error(st.logger).Log("msg", "tv stat error to markdown content failed", "err", err)
+			continue
+		}
+		_, err = mdFile.WriteString(content)
+		if err != nil {
+			level.Error(st.logger).Log("msg", "write to markdown file failed", "err", err)
+			continue
+		}
+	}
 	for _, checker := range st.tvCheckers {
 		for _, tvStat := range st.tvStats {
 			statErr := checker.check(tvStat)
@@ -237,7 +263,9 @@ func (st *Stat) runTvCheckers() error {
 
 func (st *Stat) clearStats() {
 	st.movieStats = make(map[int]*movieStat)
+	st.movieStatErrs = make([]StatErr, 0)
 	st.tvStats = make(map[int]*tvStat)
+	st.tvStatErrs = make([]StatErr, 0)
 }
 
 func (st *Stat) statMovieDirs() error {
@@ -266,11 +294,27 @@ func (st *Stat) statMovieDir(entries []*dirinfo.Entry) error {
 	return nil
 }
 
+type tmdbidParseErr struct {
+	entryPath string
+}
+
+func (tpe *tmdbidParseErr) Error() string {
+	return "failed to parse tmdbid"
+}
+
+func (tpe *tmdbidParseErr) toMarkdownContent() (string, error) {
+	str := "## Failed to parse tmdbid:\n"
+	str += "\n"
+	str += fmt.Sprintf("%s\n", tpe.entryPath)
+	str += "\n"
+	return "", nil
+}
+
 func (st *Stat) statMovieEntry(entry *dirinfo.Entry) error {
 	tmdbid := getTmdbidFromEntry(entry)
 	if tmdbid <= 0 {
-		level.Error(st.logger).Log("msg", "failed to get tmdbid from entry", "path", filepath.Join(entry.MotherPath, entry.MyDirPath))
-		return fmt.Errorf("failed to get tmdbid from entry")
+		st.movieStatErrs = append(st.movieStatErrs, &tmdbidParseErr{entryPath: filepath.Join(entry.MotherPath, entry.MyDirPath)})
+		return nil
 	}
 	mStat, ok := st.movieStats[tmdbid]
 	if !ok {
@@ -313,17 +357,24 @@ func (st *Stat) statTvDir(entrys []*dirinfo.Entry) error {
 func (st *Stat) statTvEntry(entry *dirinfo.Entry) error {
 	tmdbid := getTmdbidFromEntry(entry)
 	if tmdbid <= 0 {
-		level.Error(st.logger).Log("msg", "failed to get tmdbid from entry", "path", filepath.Join(entry.MotherPath, entry.MyDirPath))
-		return fmt.Errorf("failed to get tmdbid from entry")
+		st.tvStatErrs = append(st.tvStatErrs, &tmdbidParseErr{entryPath: filepath.Join(entry.MotherPath, entry.MyDirPath)})
+		return nil
 	}
-	tStat, ok := st.tvStats[tmdbid]
+	tvstat, ok := st.tvStats[tmdbid]
 	if !ok {
-		tStat = &tvStat{tmdbid: tmdbid}
-		st.tvStats[tmdbid] = tStat
+		tvstat = &tvStat{tmdbid: tmdbid, episodeFiles: make(map[tvEpisodeKey][]*fileInfo)}
+		st.tvStats[tmdbid] = tvstat
 	}
-	tStat.pathes = append(tStat.pathes, entry.MyDirPath)
-	tStat.totalSize += getTotalSizeFromEntry(entry)
-	tStat.episodeFiles = st.getTotalTvEpisodeFiles(entry)
+	tvstat.pathes = append(tvstat.pathes, entry.MyDirPath)
+	tvstat.totalSize += getTotalSizeFromEntry(entry)
+	newEpisodeFiles := st.getTotalTvEpisodeFiles(entry)
+	for k, v := range newEpisodeFiles {
+		if _, ok := tvstat.episodeFiles[k]; !ok {
+			tvstat.episodeFiles[k] = v
+		} else {
+			tvstat.episodeFiles[k] = append(tvstat.episodeFiles[k], v...)
+		}
+	}
 	return nil
 }
 
@@ -374,6 +425,22 @@ var (
 	tvEpisodePattern = regexp.MustCompile(`^.*S(?P<season>\d+)E(?P<episode>\d+).*$`)
 )
 
+type tvEpisodeNameInvalid struct {
+	filePath string
+}
+
+func (teni *tvEpisodeNameInvalid) Error() string {
+	return "tv episode name invalid"
+}
+
+func (teni *tvEpisodeNameInvalid) toMarkdownContent() (string, error) {
+	str := "## TV episode name invalid:\n"
+	str += "\n"
+	str += fmt.Sprintf("%s\n", teni.filePath)
+	str += "\n"
+	return "", nil
+}
+
 func (st *Stat) getTotalTvEpisodeFiles(entry *dirinfo.Entry) map[tvEpisodeKey][]*fileInfo {
 	episodeFiles := make(map[tvEpisodeKey][]*fileInfo)
 	for _, file := range entry.FileList {
@@ -388,6 +455,7 @@ func (st *Stat) getTotalTvEpisodeFiles(entry *dirinfo.Entry) map[tvEpisodeKey][]
 		fileName = strings.TrimSuffix(fileName, file.Ext)
 		groups := tvEpisodePattern.FindStringSubmatch(fileName)
 		if len(groups) == 0 {
+			st.tvStatErrs = append(st.tvStatErrs, &tvEpisodeNameInvalid{filePath: filepath.Join(entry.MotherPath, file.RelPathToMother)})
 			continue
 		}
 		season := -1
@@ -398,11 +466,13 @@ func (st *Stat) getTotalTvEpisodeFiles(entry *dirinfo.Entry) map[tvEpisodeKey][]
 			case "season":
 				season, err = strconv.Atoi(groups[i])
 				if err != nil {
+					level.Error(st.logger).Log("msg", "failed to get season", "invalid file", file.RelPathToMother)
 					continue
 				}
 			case "episode":
 				episode, err = strconv.Atoi(groups[i])
 				if err != nil {
+					level.Error(st.logger).Log("msg", "failed to get episode", "invalid file", file.RelPathToMother)
 					continue
 				}
 			}
