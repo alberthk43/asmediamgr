@@ -36,6 +36,7 @@ type Pattern struct {
 	EpisodePatternStr  string `toml:"episode_pattern"`
 	EpisodeFileAtLeast string `toml:"episode_file_at_least"`
 	SubtitlePatternStr string `toml:"subtitle_pattern"`
+	Season             *int   `toml:"season"`
 
 	DirPattern              *regexp.Regexp
 	EpisodePattern          *regexp.Regexp
@@ -310,6 +311,9 @@ func (p *TvDir) matchMediaFile(file *dirinfo.File, pattern *Pattern) (key *episo
 		return nil, nil
 	}
 	key = &episodeKey{season: -1, episode: -1}
+	if pattern.Season != nil && *pattern.Season >= 0 {
+		key.season = *pattern.Season
+	}
 	for i, name := range pattern.EpisodePattern.SubexpNames() {
 		if i == 0 {
 			continue

@@ -388,6 +388,7 @@ func (st *Stat) getTotalTvEpisodeFiles(entry *dirinfo.Entry) map[tvEpisodeKey][]
 		fileName = strings.TrimSuffix(fileName, file.Ext)
 		groups := tvEpisodePattern.FindStringSubmatch(fileName)
 		if len(groups) == 0 {
+			level.Error(st.logger).Log("msg", "failed to match tv episode pattern", "invalid file", file.RelPathToMother)
 			continue
 		}
 		season := -1
@@ -398,11 +399,13 @@ func (st *Stat) getTotalTvEpisodeFiles(entry *dirinfo.Entry) map[tvEpisodeKey][]
 			case "season":
 				season, err = strconv.Atoi(groups[i])
 				if err != nil {
+					level.Error(st.logger).Log("msg", "failed to get season", "invalid file", file.RelPathToMother)
 					continue
 				}
 			case "episode":
 				episode, err = strconv.Atoi(groups[i])
 				if err != nil {
+					level.Error(st.logger).Log("msg", "failed to get episode", "invalid file", file.RelPathToMother)
 					continue
 				}
 			}
