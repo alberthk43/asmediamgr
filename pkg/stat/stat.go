@@ -323,7 +323,7 @@ func (st *Stat) statMovieEntry(entry *dirinfo.Entry) error {
 	}
 	mStat.paths = append(mStat.paths, entry.MyDirPath)
 	mStat.totalSize += getTotalSizeFromEntry(entry)
-	mStat.movieFiles = st.getTotalMovieFiles(entry)
+	mStat.movieFiles = append(mStat.movieFiles, st.getTotalMovieFiles(entry)...)
 	return nil
 }
 
