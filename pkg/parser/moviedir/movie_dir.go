@@ -122,7 +122,11 @@ func (p *MovieDir) Parse(entry *dirinfo.Entry, opts *parser.ParserMgrRunOpts) (o
 			Tmdbid:       info.tmdbid,
 		})
 		if err != nil {
-			return false, fmt.Errorf("failed to rename movie: %w, entry: %s", err, entry.Name())
+			if os.IsExist(err) {
+				level.Warn(p.logger).Log("msg", "movie already existed", "entry", entry.Name(), "err", err)
+			} else {
+				return false, err
+			}
 		}
 	}
 	for lang, subtitleFile := range info.subtitleFiles {
@@ -135,8 +139,11 @@ func (p *MovieDir) Parse(entry *dirinfo.Entry, opts *parser.ParserMgrRunOpts) (o
 			Language:     lang,
 		})
 		if err != nil {
-			level.Warn(p.logger).Log("msg", "failed to rename subtitle", "lang", lang, "err", err, "entry", entry.Name())
-			continue
+			if os.IsExist(err) {
+				level.Warn(p.logger).Log("msg", "subtitle already existed", "lang", lang, "err", err, "entry", entry.Name())
+			} else {
+				return false, err
+			}
 		}
 	}
 	err = diskService.MoveToTrash(&disk.MoveToTrashTask{
@@ -146,7 +153,7 @@ func (p *MovieDir) Parse(entry *dirinfo.Entry, opts *parser.ParserMgrRunOpts) (o
 	if err != nil {
 		level.Warn(p.logger).Log("msg", "failed to move to trash", "err", err, "entry", entry.Name())
 	}
-	return ok, nil
+	return true, nil
 }
 
 type movieInfo struct {
@@ -205,26 +212,31 @@ func (p *MovieDir) matchPattern(entry *dirinfo.Entry, pattern *Pattern) (info *m
 				continue
 			}
 		}
+	}
+	if len(mediaFiles) > 1 {
+		return nil, fmt.Errorf("multiple media files found")
+	}
+	for _, file := range entry.FileList {
 		if utils.IsSubtitleExt(file.Ext) {
 			for _, subtitlePattern := range pattern.SubtitlePattern {
 				subtitleGroups := subtitlePattern.Pattern.FindStringSubmatch(file.RelPathToMother)
 				if len(subtitleGroups) > 0 {
 					if _, ok := subtitleFils[subtitlePattern.Language]; ok {
-						return nil, fmt.Errorf("multiple subtitle files found, language: %s", subtitlePattern.Language)
+						level.Warn(p.logger).Log("msg", "multiple subtitle files found", "language", subtitlePattern.Language, "file", file.Name)
+						continue
 					}
 					subtitleFils[subtitlePattern.Language] = file
-					break
 				}
 			}
 		}
-	}
-	if len(mediaFiles) > 1 {
-		return nil, fmt.Errorf("multiple media files found")
 	}
 	if len(mediaFiles) == 1 {
 		info.mediaFile = mediaFiles[0]
 	}
 	info.subtitleFiles = subtitleFils
+	if info.mediaFile == nil && len(info.subtitleFiles) <= 0 {
+		return info, nil
+	}
 	tmdbService := parser.GetDefaultTmdbService()
 	if info.tmdbid <= 0 {
 		searchOpts := common.DefaultTmdbSearchOpts
