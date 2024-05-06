@@ -40,12 +40,13 @@ type tvEpInfo struct {
 }
 
 type PatternConfig struct {
-	PatternStr string   `toml:"pattern"`
-	Tmdbid     int      `toml:"tmdbid"`
-	Season     int      `toml:"season"`
-	OptNames   []string `toml:"opt_names"`
-	Pattern    *regexp.Regexp
-	Opts       []PatternOpt
+	PatternStr    string   `toml:"pattern"`
+	Tmdbid        int      `toml:"tmdbid"`
+	Season        int      `toml:"season"`
+	OptNames      []string `toml:"opt_names"`
+	EpisodeOffset *int     `toml:"episode_offset"`
+	Pattern       *regexp.Regexp
+	Opts          []PatternOpt
 }
 
 type PatternOpt func(entry *dirinfo.Entry, info *tvEpInfo) error
@@ -146,14 +147,6 @@ func (p *TvEpFile) parse(entry *dirinfo.Entry) (info *tvEpInfo, err error) {
 	return nil, nil // no match and no error
 }
 
-const (
-	groupName   = "name"
-	groupSeason = "season"
-	groupEpisod = "episode"
-	groupTmdbid = "tmdbid"
-	groupYear   = "year"
-)
-
 func (p *TvEpFile) patternMatch(entry *dirinfo.Entry, pattern *PatternConfig) (info *tvEpInfo, err error) {
 	file := entry.FileList[0]
 	entryNameWithoutExt, _ := strings.CutSuffix(file.Name, file.Ext)
@@ -178,29 +171,27 @@ func (p *TvEpFile) patternMatch(entry *dirinfo.Entry, pattern *PatternConfig) (i
 			continue
 		}
 		switch group {
-		case "":
-			continue
-		case groupName:
+		case "name":
 			info.name = groups[i]
-		case groupSeason:
+		case "season":
 			n, err := strconv.ParseInt(groups[i], 10, 31)
 			if err != nil {
 				return nil, fmt.Errorf("ParseInt() season error = %v", err)
 			}
 			info.season = int(n)
-		case groupEpisod:
+		case "episode":
 			n, err := strconv.ParseInt(groups[i], 10, 31)
 			if err != nil {
 				return nil, fmt.Errorf("ParseInt() episode error = %v", err)
 			}
 			info.episode = int(n)
-		case groupTmdbid:
+		case "tmdbid":
 			n, err := strconv.ParseInt(groups[i], 10, 31)
 			if err != nil {
 				return nil, fmt.Errorf("ParseInt() tmdbid error = %v", err)
 			}
 			info.tmdbid = int(n)
-		case groupYear:
+		case "year":
 			n, err := strconv.ParseInt(groups[i], 10, 31)
 			if err != nil {
 				return nil, fmt.Errorf("ParseInt() year error = %v", err)
@@ -209,6 +200,9 @@ func (p *TvEpFile) patternMatch(entry *dirinfo.Entry, pattern *PatternConfig) (i
 		default:
 			level.Warn(p.logger).Log("msg", "unknown pattern group", "group", group)
 		}
+	}
+	if pattern.EpisodeOffset != nil {
+		info.episode += *pattern.EpisodeOffset
 	}
 	for _, opt := range pattern.Opts {
 		err = opt(entry, info)

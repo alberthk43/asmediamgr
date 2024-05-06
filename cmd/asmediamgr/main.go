@@ -51,6 +51,7 @@ type flagConfig struct {
 	statLargeMovieSizeBytes     int64
 	statLargeTvEpisodeSize      string
 	statLargeTvEpisodeSizeBytes int64
+	enableStat                  bool
 }
 
 type flagStringSlice []string
@@ -92,6 +93,7 @@ func main() {
 	flag.Var(&cfg.statTvDirs, "stattvdir", "stat tv dirs")
 	flag.StringVar(&cfg.statLargeMovieSize, "statlargemoviesize", "10G", "stat large movie size")
 	flag.StringVar(&cfg.statLargeTvEpisodeSize, "statlargeepisodesize", "5G", "stat large tv episode size")
+	flag.BoolVar(&cfg.enableStat, "stat", true, "enable stat")
 	flag.Parse()
 
 	cfg.statMovieDirs = append(cfg.statMovieDirs, cfg.parserTargetMovieDir)
@@ -162,37 +164,38 @@ func main() {
 		SleepDurParse: cfg.parserParseDur,
 	}
 
-	statOpts := &stat.StatOpts{
-		Logger:             log.With(logger, "component", "stat"),
-		Interval:           cfg.statInterval,
-		InitWait:           cfg.statInitWait,
-		MovieDirs:          cfg.statMovieDirs,
-		TvDirs:             cfg.statTvDirs,
-		LargeMovieSize:     cfg.statLargeMovieSizeBytes,
-		LargeTvEpisodeSize: cfg.statLargeTvEpisodeSizeBytes,
-	}
-	stat, err := stat.NewStat(statOpts)
-	if err != nil {
-		fmt.Fprintf(os.Stderr, "failed to create stat: %v\n", err)
-		os.Exit(1)
-	}
-
 	var wg sync.WaitGroup
+	if cfg.enableStat {
+		statOpts := &stat.StatOpts{
+			Logger:             log.With(logger, "component", "stat"),
+			Interval:           cfg.statInterval,
+			InitWait:           cfg.statInitWait,
+			MovieDirs:          cfg.statMovieDirs,
+			TvDirs:             cfg.statTvDirs,
+			LargeMovieSize:     cfg.statLargeMovieSizeBytes,
+			LargeTvEpisodeSize: cfg.statLargeTvEpisodeSizeBytes,
+		}
+		stat, err := stat.NewStat(statOpts)
+		if err != nil {
+			fmt.Fprintf(os.Stderr, "failed to create stat: %v\n", err)
+			os.Exit(1)
+		}
+		wg.Add(1)
+		go func() {
+			defer wg.Done()
+			err = stat.Run()
+			if err != nil {
+				fmt.Fprintf(os.Stderr, "failed to run stat: %v\n", err)
+				os.Exit(1)
+			}
+		}()
+	}
 	wg.Add(1)
 	go func() {
 		defer wg.Done()
 		err = parserMgr.RunParsers(parserMgrRunOpts)
 		if err != nil {
 			fmt.Fprintf(os.Stderr, "failed to run parsers: %v\n", err)
-			os.Exit(1)
-		}
-	}()
-	wg.Add(1)
-	go func() {
-		defer wg.Done()
-		err = stat.Run()
-		if err != nil {
-			fmt.Fprintf(os.Stderr, "failed to run stat: %v\n", err)
 			os.Exit(1)
 		}
 	}()
