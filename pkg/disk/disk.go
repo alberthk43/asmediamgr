@@ -174,7 +174,7 @@ func (d *DiskService) RenameTvEpisode(task *TvEpisodeRenameTask) error {
 			return fmt.Errorf("MkdirAll() error = %v", err)
 		}
 		if fileExists(epFilePath) {
-			return fmt.Errorf("file already exists: %s", epFilePath)
+			return os.ErrExist
 		}
 		err = os.Rename(task.OldPath, epFilePath)
 		if err != nil {
@@ -206,7 +206,7 @@ func (d *DiskService) RenameTvSubtitle(task *TvSubtitleRenameTask) error {
 			return fmt.Errorf("MkdirAll() error = %v", err)
 		}
 		if fileExists(subtitleFilePath) {
-			return fmt.Errorf("file already exists: %s", subtitleFilePath)
+			return os.ErrExist
 		}
 		err = os.Rename(task.OldPath, subtitleFilePath)
 		if err != nil {
@@ -238,7 +238,7 @@ func (d *DiskService) RenameMovie(task *MovieRenameTask) error {
 			return fmt.Errorf("MkdirAll() error = %v", err)
 		}
 		if fileExists(movieFilePath) {
-			return fmt.Errorf("file already exists: %s", movieFilePath)
+			return os.ErrExist
 		}
 		err = os.Rename(task.OldPath, movieFilePath)
 		if err != nil {
@@ -270,7 +270,7 @@ func (d *DiskService) RenameMovieSubtitle(task *MovieSubtitleRenameTask) error {
 			return fmt.Errorf("MkdirAll() error = %v", err)
 		}
 		if fileExists(movieSubtitleFilePath) {
-			return fmt.Errorf("file already exists: %s", movieSubtitleFilePath)
+			return os.ErrExist
 		}
 		err = os.Rename(task.OldPath, movieSubtitleFilePath)
 		if err != nil {
@@ -295,7 +295,7 @@ func (d *DiskService) MoveToTrash(task *MoveToTrashTask) error {
 	trashTarget := filepath.Join(task.TrashDir, oldBase)
 	if !d.dryRunMode {
 		if fileExists(trashTarget) {
-			return fmt.Errorf("file already exists: %s", trashTarget)
+			return os.ErrExist
 		}
 		err = os.Rename(task.Path, trashTarget)
 		if err != nil {
