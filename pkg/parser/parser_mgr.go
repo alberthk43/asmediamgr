@@ -13,11 +13,34 @@ import (
 	tmdb "github.com/cyruzin/golang-tmdb"
 	"github.com/go-kit/log"
 	"github.com/go-kit/log/level"
+	"github.com/prometheus/client_golang/prometheus"
 
 	"asmediamgr/pkg/common"
 	"asmediamgr/pkg/dirinfo"
 	"asmediamgr/pkg/disk"
 )
+
+var (
+	scanDirRunTotal = prometheus.NewCounterVec(
+		prometheus.CounterOpts{
+			Name: "asmediamgr_parser_scan_total",
+			Help: "Total number of parser scan",
+		},
+		[]string{"scan_dir"},
+	)
+	entryRunTotal = prometheus.NewCounterVec(
+		prometheus.CounterOpts{
+			Name: "asmediamgr_parser_run_total",
+			Help: "Total number of parser run",
+		},
+		[]string{"entry_name"},
+	)
+)
+
+func init() {
+	prometheus.MustRegister(scanDirRunTotal)
+	prometheus.MustRegister(entryRunTotal)
+}
 
 // TmdbService is a service that can search tmdb
 type TmdbService interface {
@@ -235,6 +258,7 @@ func (pm *ParserMgr) runParsersWithDir(wg *sync.WaitGroup, scanDir string, opts 
 	doNextTime := make(map[string]*failNextTime)
 	for {
 		now := time.Now()
+		scanDirRunTotal.With(prometheus.Labels{"scan_dir": scanDir}).Inc()
 		entries, err := dirinfo.ScanMotherDir(scanDir)
 		if err != nil {
 			level.Error(pm.logger).Log("msg", fmt.Sprintf("failed to scan motherDir: %v", err))
@@ -288,6 +312,7 @@ func punishAddTime(failCnt int32) time.Duration {
 }
 
 func (pm *ParserMgr) runEntry(entry *dirinfo.Entry, opts *ParserMgrRunOpts) (okParserName string, err error) {
+	entryRunTotal.With(prometheus.Labels{"entry_name": entry.Name()}).Inc()
 	// TODO if entry is NOT existed any more, should return "", nil
 	for _, parserInfo := range pm.parsers {
 		ok, err := pm.runParser(entry, parserInfo, opts)
