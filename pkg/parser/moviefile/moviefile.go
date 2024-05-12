@@ -118,12 +118,6 @@ func (p *MovieFile) parse(entry *dirinfo.Entry) (*movieInfo, error) {
 	return nil, nil
 }
 
-const (
-	groupName   = "name"
-	groupYear   = "year"
-	groupTmdbid = "tmdbid"
-)
-
 var (
 	defaultTmdbUrlOptions = map[string]string{
 		"include_adult": "true",
@@ -148,14 +142,20 @@ func (p *MovieFile) patternMatch(entry *dirinfo.Entry, pattern *PatternConfig) (
 		switch group {
 		case "":
 			continue
-		case groupName:
+		case "name":
 			info.name = groups[i]
-		case groupTmdbid:
+		case "tmdbid":
 			n, err := strconv.Atoi(groups[i])
 			if err != nil {
 				return nil, fmt.Errorf("failed to parse tmdbid: %w", err)
 			}
 			info.tmdbid = n
+		case "year":
+			n, err := strconv.Atoi(groups[i])
+			if err != nil {
+				return nil, fmt.Errorf("failed to parse year: %w", err)
+			}
+			info.year = n
 		default:
 			return nil, fmt.Errorf("unknown group: %s", group)
 		}
@@ -170,10 +170,10 @@ func (p *MovieFile) patternMatch(entry *dirinfo.Entry, pattern *PatternConfig) (
 		if err != nil {
 			return nil, err
 		}
-		if results.TotalPages <= 0 {
+		if results.TotalResults <= 0 {
 			return nil, fmt.Errorf("no movie found")
 		}
-		if results.TotalPages > 1 {
+		if results.TotalResults > 1 {
 			var hits []string
 			for i := 0; i < 3 && i < len(results.Results); i++ {
 				hits = append(hits, fmt.Sprintf("%s-%d", results.Results[i].Title, results.Results[i].ID))
