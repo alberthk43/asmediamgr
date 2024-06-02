@@ -33,33 +33,20 @@ type TvEpFile struct {
 type tvEpInfo struct {
 	name         string
 	originalName string
-	season       int
-	episode      int
-	tmdbid       int
-	year         int
+	season       *int
+	episode      *int
+	tmdbid       *int
+	year         *int
 }
 
 type PatternConfig struct {
 	PatternStr    string   `toml:"pattern"`
-	Tmdbid        int      `toml:"tmdbid"`
-	Season        int      `toml:"season"`
+	Tmdbid        *int     `toml:"tmdbid"`
+	Season        *int     `toml:"season"`
 	OptNames      []string `toml:"opt_names"`
 	EpisodeOffset *int     `toml:"episode_offset"`
 	Pattern       *regexp.Regexp
-	Opts          []PatternOpt
 }
-
-type PatternOpt func(entry *dirinfo.Entry, info *tvEpInfo) error
-
-const (
-	ChineseSeasonOpt = "chinese_season_name"
-)
-
-var (
-	patternOpts = map[string]PatternOpt{
-		ChineseSeasonOpt: OptChineseSeasonName,
-	}
-)
 
 func (p *TvEpFile) IsDefaultEnable() bool {
 	return true
@@ -89,13 +76,6 @@ func (p *TvEpFile) Init(cfgPath string, logger log.Logger) (priority float32, er
 		if err != nil {
 			return 0, fmt.Errorf("Compile() error = %v", err)
 		}
-		for _, optName := range pattern.OptNames {
-			opt, ok := patternOpts[optName]
-			if !ok {
-				return 0, fmt.Errorf("unknown optName = %s", optName)
-			}
-			pattern.Opts = append(pattern.Opts, opt)
-		}
 	}
 	return 0, nil
 }
@@ -123,10 +103,10 @@ func (p *TvEpFile) Parse(entry *dirinfo.Entry, opts *parser.ParserMgrRunOpts) (o
 		OldPath:      filepath.Join(entry.MotherPath, file.RelPathToMother),
 		NewMotherDir: tvMediaTargetDir,
 		OriginalName: info.originalName,
-		Year:         info.year,
-		Tmdbid:       info.tmdbid,
-		Season:       info.season,
-		Episode:      info.episode,
+		Year:         *info.year,
+		Tmdbid:       *info.tmdbid,
+		Season:       *info.season,
+		Episode:      *info.episode,
 	})
 	if err != nil {
 		return false, fmt.Errorf("diskService.RenameTvEpisode() error = %v", err)
@@ -149,22 +129,13 @@ func (p *TvEpFile) parse(entry *dirinfo.Entry) (info *tvEpInfo, err error) {
 
 func (p *TvEpFile) patternMatch(entry *dirinfo.Entry, pattern *PatternConfig) (info *tvEpInfo, err error) {
 	file := entry.FileList[0]
-	entryNameWithoutExt, _ := strings.CutSuffix(file.Name, file.Ext)
-	groups := pattern.Pattern.FindStringSubmatch(entryNameWithoutExt)
+	groups := pattern.Pattern.FindStringSubmatch(file.PureName)
 	if len(groups) == 0 {
 		return nil, nil
 	}
 	info = &tvEpInfo{
-		name:    "",
-		season:  -1,
-		episode: -1,
-		tmdbid:  -1,
-	}
-	if pattern.Tmdbid > 0 {
-		info.tmdbid = pattern.Tmdbid
-	}
-	if pattern.Season >= 0 {
-		info.season = pattern.Season
+		tmdbid: pattern.Tmdbid,
+		season: pattern.Season,
 	}
 	for i, group := range pattern.Pattern.SubexpNames() {
 		if i == 0 {
@@ -172,65 +143,89 @@ func (p *TvEpFile) patternMatch(entry *dirinfo.Entry, pattern *PatternConfig) (i
 		}
 		switch group {
 		case "name":
-			info.name = groups[i]
+			info.name = strings.Trim(groups[i], " ")
+		case "chineaseseasonname":
+			season, name, err := parseChineseSeasonName(groups[i])
+			if err != nil {
+				return nil, nil
+			}
+			info.name = strings.Trim(name, " ")
+			if info.season == nil {
+				info.season = &season
+			}
+		case "numberseasonname":
+			season, name, err := parseNumberSeasonName(groups[i])
+			if err != nil {
+				return nil, nil
+			}
+			info.name = strings.Trim(name, " ")
+			if info.season == nil {
+				info.season = &season
+			}
 		case "season":
 			n, err := strconv.ParseInt(groups[i], 10, 31)
 			if err != nil {
 				return nil, fmt.Errorf("ParseInt() season error = %v", err)
 			}
-			info.season = int(n)
+			if info.season == nil {
+				season := int(n)
+				info.season = &season
+			}
 		case "episode":
 			n, err := strconv.ParseInt(groups[i], 10, 31)
 			if err != nil {
 				return nil, fmt.Errorf("ParseInt() episode error = %v", err)
 			}
-			info.episode = int(n)
+			episode := int(n)
+			info.episode = &episode
 		case "tmdbid":
 			n, err := strconv.ParseInt(groups[i], 10, 31)
 			if err != nil {
 				return nil, fmt.Errorf("ParseInt() tmdbid error = %v", err)
 			}
-			info.tmdbid = int(n)
+			tmdbid := int(n)
+			info.tmdbid = &tmdbid
 		case "year":
 			n, err := strconv.ParseInt(groups[i], 10, 31)
 			if err != nil {
 				return nil, fmt.Errorf("ParseInt() year error = %v", err)
 			}
-			info.year = int(n)
+			year := int(n)
+			info.year = &year
 		default:
 			level.Warn(p.logger).Log("msg", "unknown pattern group", "group", group)
 		}
 	}
-	if pattern.EpisodeOffset != nil {
-		info.episode += *pattern.EpisodeOffset
+	if info.episode == nil {
+		return nil, nil
 	}
-	for _, opt := range pattern.Opts {
-		err = opt(entry, info)
-		if err != nil {
-			return nil, fmt.Errorf("opt() error = %v", err)
-		}
+	if pattern.EpisodeOffset != nil {
+		*info.episode += *pattern.EpisodeOffset
 	}
 	tmdbService := parser.GetDefaultTmdbService()
-	if info.tmdbid > 0 && pattern.Season >= 0 && info.episode >= 0 {
-		return p.dealPreTmdbAndSeason(tmdbService, pattern, info)
-	} else if info.tmdbid > 0 && info.season >= 0 && info.episode >= 0 {
-		return p.dealPreTmdbidAndScrapedSeason(tmdbService, info)
-	} else if info.name != "" && info.season >= 0 && info.episode >= 0 {
-		return p.dealSearchNameAndScrapedSeason(tmdbService, info)
-	} else if info.name != "" && pattern.Season >= 0 && info.episode >= 0 {
-		return p.dealSearchNameAndPreSeason(tmdbService, pattern, info)
+	if info.tmdbid == nil {
+		urlOptions := common.DefaultTmdbSearchOpts
+		if info.year != nil {
+			urlOptions["year"] = strconv.Itoa(*info.year)
+		}
+		tvs, err := tmdbService.GetSearchTVShow(info.name, urlOptions)
+		if err != nil {
+			return nil, fmt.Errorf("deal search name and scraped season, name = %s, year = %d, error = %v", info.name, info.year, err)
+		}
+		if tvs.TotalResults <= 0 {
+			return nil, fmt.Errorf("deal search name and scraped season, name = %s, year = %d, no result", info.name, info.year)
+		}
+		if tvs.TotalResults > 1 {
+			var results []string
+			for i := 0; i < 3 && i < len(tvs.Results); i++ {
+				results = append(results, fmt.Sprintf("%s-%d", tvs.Results[i].Name, tvs.Results[i].ID))
+			}
+			return nil, fmt.Errorf("deal search name and scraped season, multiple result, search name = %s, year = %d ,first 3 results = %v", info.name, info.year, results)
+		}
+		tmdbid := int(tvs.Results[0].ID)
+		info.tmdbid = &tmdbid
 	}
-	return nil, fmt.Errorf("invalid info = %+v, pattern = %+v", info, pattern)
-}
-
-var (
-	defaultTmdbUrlOptions = map[string]string{
-		"include_adult": "true",
-	}
-)
-
-func (p *TvEpFile) dealPreTmdbAndSeason(tmdbService parser.TmdbService, pattern *PatternConfig, info *tvEpInfo) (newInfo *tvEpInfo, err error) {
-	tvDetail, err := tmdbService.GetTVDetails(info.tmdbid, defaultTmdbUrlOptions)
+	tvDetail, err := tmdbService.GetTVDetails(*info.tmdbid, common.DefaultTmdbSearchOpts)
 	if err != nil {
 		return nil, fmt.Errorf("get pre tmdb and season, tmdbid = %d, err = %v", info.tmdbid, err)
 	}
@@ -238,135 +233,41 @@ func (p *TvEpFile) dealPreTmdbAndSeason(tmdbService parser.TmdbService, pattern 
 	if err != nil {
 		return nil, fmt.Errorf("get pre tmdb and season, tmdbid = %d, invalid FirstAirDate = %s", info.tmdbid, tvDetail.FirstAirDate)
 	}
-	newInfo = &tvEpInfo{
-		originalName: tvDetail.OriginalName,
-		season:       pattern.Season,
-		episode:      info.episode,
-		tmdbid:       info.tmdbid,
-		year:         dt.Year,
-	}
-	return newInfo, nil
-}
-
-func (p *TvEpFile) dealPreTmdbidAndScrapedSeason(tmdbService parser.TmdbService, info *tvEpInfo) (newInfo *tvEpInfo, err error) {
-	tvDetail, err := tmdbService.GetTVDetails(info.tmdbid, defaultTmdbUrlOptions)
-	if err != nil {
-		return nil, fmt.Errorf("deal pre tmdb and scraped season, tmdbid = %d, error = %v", info.tmdbid, err)
-	}
-	dt, err := common.ParseTmdbDateStr(tvDetail.FirstAirDate)
-	if err != nil {
-		return nil, fmt.Errorf("deal pre tmdb and scraped season, tmdbid = %d, invalid FirstAirDate = %s", info.tmdbid, tvDetail.FirstAirDate)
-	}
-	newInfo = &tvEpInfo{
-		originalName: tvDetail.OriginalName,
-		season:       info.season,
-		episode:      info.episode,
-		tmdbid:       info.tmdbid,
-		year:         dt.Year,
-	}
-	return newInfo, nil
-}
-
-func (p *TvEpFile) dealSearchNameAndScrapedSeason(tmdbService parser.TmdbService, info *tvEpInfo) (newInfo *tvEpInfo, err error) {
-	urlOptions := defaultTmdbUrlOptions
-	if info.year > common.ValidStartYear {
-		urlOptions["year"] = strconv.Itoa(info.year)
-	}
-	tvs, err := tmdbService.GetSearchTVShow(info.name, urlOptions)
-	if err != nil {
-		return nil, fmt.Errorf("deal search name and scraped season, name = %s, year = %d, error = %v", info.name, info.year, err)
-	}
-	if tvs.TotalResults <= 0 {
-		return nil, fmt.Errorf("deal search name and scraped season, name = %s, year = %d, no result", info.name, info.year)
-	}
-	if tvs.TotalResults > 1 {
-		var results []string
-		for i := 0; i < 3 && i < len(tvs.Results); i++ {
-			results = append(results, fmt.Sprintf("%s-%d", tvs.Results[i].Name, tvs.Results[i].ID))
-		}
-		return nil, fmt.Errorf("deal search name and scraped season, multiple result, search name = %s, year = %d ,first 3 results = %v", info.name, info.year, results)
-	}
-	info.tmdbid = int(tvs.Results[0].ID)
-	tvDetail, err := tmdbService.GetTVDetails(info.tmdbid, defaultTmdbUrlOptions)
-	if err != nil {
-		return nil, fmt.Errorf("deal search name and scraped season, get detail of tmdbid = %d, error = %v", info.tmdbid, err)
-	}
-	dt, err := common.ParseTmdbDateStr(tvDetail.FirstAirDate)
-	if err != nil {
-		return nil, fmt.Errorf("deal search name and scraped season, invalid FirstAirDate = %s", tvDetail.FirstAirDate)
-	}
-	newInfo = &tvEpInfo{
-		originalName: tvDetail.OriginalName,
-		season:       info.season,
-		episode:      info.episode,
-		tmdbid:       info.tmdbid,
-		year:         dt.Year,
-	}
-	return newInfo, nil
-}
-
-func (p *TvEpFile) dealSearchNameAndPreSeason(tmdbService parser.TmdbService, pattern *PatternConfig, info *tvEpInfo) (newInfo *tvEpInfo, err error) {
-	urlOptions := defaultTmdbUrlOptions
-	if info.year > common.ValidStartYear {
-		urlOptions["year"] = strconv.Itoa(info.year)
-	}
-	tvs, err := tmdbService.GetSearchTVShow(info.name, urlOptions)
-	if err != nil {
-		return nil, fmt.Errorf("deal search name and pre seaon, name = %s, year = %d, error = %v", info.name, info.year, err)
-	}
-	if tvs.TotalResults <= 0 {
-		return nil, fmt.Errorf("deal search name and pre seaon, name = %s, year = %d, no result", info.name, info.year)
-	}
-	if tvs.TotalResults > 1 {
-		var results []string
-		for i := 0; i < 3 && i < len(tvs.Results); i++ {
-			results = append(results, fmt.Sprintf("%s-%d", tvs.Results[i].Name, tvs.Results[i].ID))
-		}
-		return nil, fmt.Errorf("deal search name and pre seaon, name = %s, year = %d, multiple results, first 3 results = %v", info.name, info.year, results)
-	}
-	info.tmdbid = int(tvs.Results[0].ID)
-	tvDetail, err := tmdbService.GetTVDetails(info.tmdbid, defaultTmdbUrlOptions)
-	if err != nil {
-		return nil, fmt.Errorf("deal search name and pre seaon, tmdbid = %d, error = %v", info.tmdbid, err)
-	}
-	dt, err := common.ParseTmdbDateStr(tvDetail.FirstAirDate)
-	if err != nil {
-		return nil, fmt.Errorf("deal search name and pre seaon, invalid FirstAirDate = %s", tvDetail.FirstAirDate)
-	}
-	newInfo = &tvEpInfo{
-		originalName: tvDetail.OriginalName,
-		season:       pattern.Season,
-		episode:      info.episode,
-		tmdbid:       info.tmdbid,
-		year:         dt.Year,
-	}
-	return newInfo, nil
+	info.year = &dt.Year
+	return info, nil
 }
 
 var (
-	chineseSeasonNamePattern = regexp.MustCompile(`(?P<name>.*)第(?P<seasonch>.*)季.*`)
+	numberSeasonNamePattern  = regexp.MustCompile(`(?P<name>.*)第(?P<season>\d+)季`)
+	chineseSeasonNamePattern = regexp.MustCompile(`(?P<name>.*)第(?P<seasonch>.*)季`)
 )
 
-func OptChineseSeasonName(entry *dirinfo.Entry, info *tvEpInfo) error {
-	if info.season >= 0 {
-		return nil
-	}
-	groups := chineseSeasonNamePattern.FindStringSubmatch(info.name)
+func parseChineseSeasonName(seasonName string) (season int, name string, err error) {
+	groups := chineseSeasonNamePattern.FindStringSubmatch(seasonName)
 	if len(groups) == 0 {
-		return nil
+		return -1, "", fmt.Errorf("no match")
 	}
 	numStr := groups[2]
-	var err error
 	var n int
 	n, err = strconv.Atoi(numStr)
 	if err != nil {
 		var ok bool
 		n, ok = common.ChineseToNum(numStr)
 		if !ok {
-			return fmt.Errorf("ChineseToNum() not chinese number = %s", numStr)
+			return -1, "", fmt.Errorf("ChineseToNum() not chinese number = %s", numStr)
 		}
 	}
-	info.season = int(n)
-	info.name = groups[1]
-	return nil
+	return n, groups[1], nil
+}
+
+func parseNumberSeasonName(seasonName string) (season int, name string, err error) {
+	groups := numberSeasonNamePattern.FindStringSubmatch(seasonName)
+	if len(groups) == 0 {
+		return -1, "", fmt.Errorf("no match")
+	}
+	n, err := strconv.Atoi(groups[2])
+	if err != nil {
+		return -1, "", fmt.Errorf("Atoi() error = %v", err)
+	}
+	return n, groups[1], nil
 }
