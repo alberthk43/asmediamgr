@@ -3,6 +3,7 @@ package main
 import (
 	"flag"
 	"fmt"
+	"net/http"
 	_ "net/http/pprof"
 	"os"
 	"runtime"
@@ -11,6 +12,7 @@ import (
 
 	"github.com/go-kit/log"
 	"github.com/go-kit/log/level"
+	"github.com/prometheus/client_golang/prometheus/promhttp"
 
 	"asmediamgr/pkg/common"
 	"asmediamgr/pkg/common/aslog"
@@ -52,6 +54,8 @@ type flagConfig struct {
 	statLargeTvEpisodeSize      string
 	statLargeTvEpisodeSizeBytes int64
 	enableStat                  bool
+	enablePrometheusHTTP        bool
+	prometheusPort              int
 }
 
 type flagStringSlice []string
@@ -94,6 +98,8 @@ func main() {
 	flag.StringVar(&cfg.statLargeMovieSize, "statlargemoviesize", "10G", "stat large movie size")
 	flag.StringVar(&cfg.statLargeTvEpisodeSize, "statlargeepisodesize", "5G", "stat large tv episode size")
 	flag.BoolVar(&cfg.enableStat, "stat", true, "enable stat")
+	flag.BoolVar(&cfg.enablePrometheusHTTP, "prometheus", true, "enable prometheus http")
+	flag.IntVar(&cfg.prometheusPort, "prometheusport", 12200, "prometheus port")
 	flag.Parse()
 
 	cfg.statMovieDirs = append(cfg.statMovieDirs, cfg.parserTargetMovieDir)
@@ -199,5 +205,19 @@ func main() {
 			os.Exit(1)
 		}
 	}()
+	if cfg.enablePrometheusHTTP {
+		go func() {
+			initPrometheusHTTP()
+			err := http.ListenAndServe(fmt.Sprintf(":%d", cfg.prometheusPort), nil)
+			if err != nil {
+				fmt.Fprintf(os.Stderr, "failed to run prometheus http: %v\n", err)
+				os.Exit(1)
+			}
+		}()
+	}
 	wg.Wait()
+}
+
+func initPrometheusHTTP() {
+	http.Handle("/metrics", promhttp.Handler())
 }

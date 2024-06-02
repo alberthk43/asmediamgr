@@ -203,7 +203,7 @@ func (p *MovieDir) matchPattern(entry *dirinfo.Entry, pattern *Pattern) (info *m
 		}
 	}
 	var mediaFiles []*dirinfo.File
-	subtitleFils := make(map[string]*dirinfo.File)
+	subtitleFilsMapping := make(map[string]*dirinfo.File)
 	for _, file := range entry.FileList {
 		if utils.IsMediaExt(file.Ext) && utils.FileAtLeast(file, pattern.MediaFileAtLeastBytes) {
 			mediaGroups := pattern.MediaPattern.FindStringSubmatch(file.RelPathToMother)
@@ -216,24 +216,49 @@ func (p *MovieDir) matchPattern(entry *dirinfo.Entry, pattern *Pattern) (info *m
 	if len(mediaFiles) > 1 {
 		return nil, fmt.Errorf("multiple media files found")
 	}
+	var allSubtitleFiles []*dirinfo.File
 	for _, file := range entry.FileList {
 		if utils.IsSubtitleExt(file.Ext) {
-			for _, subtitlePattern := range pattern.SubtitlePattern {
-				subtitleGroups := subtitlePattern.Pattern.FindStringSubmatch(file.RelPathToMother)
-				if len(subtitleGroups) > 0 {
-					if _, ok := subtitleFils[subtitlePattern.Language]; ok {
-						level.Warn(p.logger).Log("msg", "multiple subtitle files found", "language", subtitlePattern.Language, "file", file.Name)
-						continue
-					}
-					subtitleFils[subtitlePattern.Language] = file
+			allSubtitleFiles = append(allSubtitleFiles, file)
+		}
+	}
+	var remainSubtitleFiles []*dirinfo.File
+	for _, file := range allSubtitleFiles {
+		found := false
+		for _, subtitlePattern := range pattern.SubtitlePattern {
+			subtitleGroups := subtitlePattern.Pattern.FindStringSubmatch(file.RelPathToMother)
+			if len(subtitleGroups) > 0 {
+				if _, ok := subtitleFilsMapping[subtitlePattern.Language]; !ok {
+					subtitleFilsMapping[subtitlePattern.Language] = file
+					found = true
+					break
+				} else {
+					level.Warn(p.logger).Log("msg", "multiple subtitle files found", "language", subtitlePattern.Language, "file", file.Name)
 				}
 			}
+		}
+		if !found {
+			remainSubtitleFiles = append(remainSubtitleFiles, file)
 		}
 	}
 	if len(mediaFiles) == 1 {
 		info.mediaFile = mediaFiles[0]
+		if _, ok := subtitleFilsMapping[""]; !ok {
+			info.mediaFile = mediaFiles[0]
+			for _, file := range remainSubtitleFiles {
+				subtitleNameWithoutExt := file.Name[:len(file.Name)-len(file.Ext)-1]
+				mediaNameWithoutExt := info.mediaFile.Name[:len(info.mediaFile.Name)-len(info.mediaFile.Ext)-1]
+				if subtitleNameWithoutExt == mediaNameWithoutExt {
+					subtitleFilsMapping[""] = file
+				}
+			}
+		}
+	} else {
+		if _, ok := subtitleFilsMapping[""]; !ok && len(remainSubtitleFiles) == 1 {
+			subtitleFilsMapping[""] = remainSubtitleFiles[0]
+		}
 	}
-	info.subtitleFiles = subtitleFils
+	info.subtitleFiles = subtitleFilsMapping
 	if info.mediaFile == nil && len(info.subtitleFiles) <= 0 {
 		return info, nil
 	}
