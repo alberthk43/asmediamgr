@@ -151,6 +151,7 @@ type tvInfo struct {
 	name          string
 	year          int
 	tmdbid        int
+	season        int
 	originalName  string
 	mediaFiles    map[episodeKey]*dirinfo.File
 	subtitleFiles map[subtitleKey]*dirinfo.File
@@ -168,12 +169,6 @@ func (p *TvDir) parse(entry *dirinfo.Entry) (info *tvInfo, err error) {
 	}
 	return nil, nil
 }
-
-const (
-	dirGroupName   = "name"
-	dirGroupYear   = "year"
-	dirGroupTmdbid = "tmdbid"
-)
 
 type episodeKey struct {
 	season  int
@@ -197,20 +192,26 @@ func (p *TvDir) matchPattern(entry *dirinfo.Entry, pattern *Pattern) (info *tvIn
 			continue
 		}
 		switch name {
-		case dirGroupName:
+		case "name":
 			info.name = groups[i]
-		case dirGroupYear:
+		case "year":
 			n, err := strconv.Atoi(groups[i])
 			if err != nil {
 				return nil, err
 			}
 			info.year = n
-		case dirGroupTmdbid:
+		case "tmdbid":
 			n, err := strconv.Atoi(groups[i])
 			if err != nil {
 				return nil, err
 			}
 			info.tmdbid = n
+		case "season":
+			n, err := strconv.Atoi(groups[i])
+			if err != nil {
+				return nil, err
+			}
+			info.season = n
 		default:
 			return nil, fmt.Errorf("unknown group name: %s", name)
 		}
@@ -220,7 +221,7 @@ func (p *TvDir) matchPattern(entry *dirinfo.Entry, pattern *Pattern) (info *tvIn
 	subtitleFiles := make(map[subtitleKey]*dirinfo.File)
 	for _, file := range entry.FileList {
 		if utils.IsMediaExt(file.Ext) && utils.FileAtLeast(file, pattern.EpisodeFileAtLeastBytes) {
-			mKey, err := p.matchMediaFile(file, pattern)
+			mKey, err := p.matchMediaFile(file, pattern, info)
 			if err != nil {
 				return nil, err
 			}
@@ -300,13 +301,8 @@ func (p *TvDir) matchPattern(entry *dirinfo.Entry, pattern *Pattern) (info *tvIn
 	return info, nil
 }
 
-const (
-	mediaGroupSeason  = "season"
-	mediaGroupEpisode = "episode"
-)
-
-func (p *TvDir) matchMediaFile(file *dirinfo.File, pattern *Pattern) (key *episodeKey, err error) {
-	groups := pattern.EpisodePattern.FindStringSubmatch(file.Name)
+func (p *TvDir) matchMediaFile(file *dirinfo.File, pattern *Pattern, tvInfo *tvInfo) (key *episodeKey, err error) {
+	groups := pattern.EpisodePattern.FindStringSubmatch(file.PureName)
 	if len(groups) <= 0 {
 		return nil, nil
 	}
@@ -314,18 +310,21 @@ func (p *TvDir) matchMediaFile(file *dirinfo.File, pattern *Pattern) (key *episo
 	if pattern.Season != nil && *pattern.Season >= 0 {
 		key.season = *pattern.Season
 	}
+	if tvInfo.season >= 0 {
+		key.season = tvInfo.season
+	}
 	for i, name := range pattern.EpisodePattern.SubexpNames() {
 		if i == 0 {
 			continue
 		}
 		switch name {
-		case mediaGroupSeason:
+		case "season":
 			season, err := strconv.Atoi(groups[i])
 			if err != nil {
 				return nil, err
 			}
 			key.season = season
-		case mediaGroupEpisode:
+		case "episode":
 			episode, err := strconv.Atoi(groups[i])
 			if err != nil {
 				return nil, err
@@ -338,12 +337,6 @@ func (p *TvDir) matchMediaFile(file *dirinfo.File, pattern *Pattern) (key *episo
 	return key, nil
 }
 
-const (
-	subtitleGroupLang    = "lang"
-	subtitleGroupSeason  = "season"
-	subtitleGroupEpisode = "episode"
-)
-
 func (p *TvDir) matchSubtitleFile(file *dirinfo.File, pattern *Pattern) (key *subtitleKey, err error) {
 	groups := pattern.SubtitlePattern.FindStringSubmatch(file.Name)
 	if len(groups) <= 0 {
@@ -355,15 +348,15 @@ func (p *TvDir) matchSubtitleFile(file *dirinfo.File, pattern *Pattern) (key *su
 			continue
 		}
 		switch name {
-		case subtitleGroupLang:
+		case "lang":
 			key.lang = groups[i]
-		case subtitleGroupSeason:
+		case "season":
 			season, err := strconv.Atoi(groups[i])
 			if err != nil {
 				return nil, err
 			}
 			key.season = season
-		case subtitleGroupEpisode:
+		case "episode":
 			episode, err := strconv.Atoi(groups[i])
 			if err != nil {
 				return nil, err

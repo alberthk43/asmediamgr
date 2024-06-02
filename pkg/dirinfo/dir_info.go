@@ -7,24 +7,29 @@ import (
 	"path/filepath"
 )
 
+// File represents a file in the motherDir
 type File struct {
-	RelPathToMother string
-	Name, Ext       string
-	BytesNum        int64
+	RelPathToMother string // Relative paht	to motherDir
+	Name            string // Filename
+	Ext             string // Extension
+	PureName        string // Filename without extension
+	BytesNum        int64  // Total Bytes
 }
 
+// EntryType represents the type of entry
 type EntryType int
 
 const (
-	FileEntry EntryType = iota
-	DirEntry
+	FileEntry EntryType = iota // File Type
+	DirEntry                   // Dir Type
 )
 
+// Entry represents a file or a dir in the motherDir, as the smallest unit to process
 type Entry struct {
-	Type       EntryType
-	MyDirPath  string
-	MotherPath string
-	FileList   []*File
+	Type       EntryType // Type of entry
+	MyDirPath  string    // Dir path
+	MotherPath string    // Mother dir path
+	FileList   []*File   // File list, if Type is FileEntry, only one element in the list, or recusive files in the dir
 }
 
 func (e *Entry) Name() string {
@@ -91,6 +96,7 @@ func fileEntry(sub fs.DirEntry, motherPath string) (*Entry, error) {
 				RelPathToMother: sub.Name(),
 				Name:            sub.Name(),
 				Ext:             filepath.Ext(sub.Name()),
+				PureName:        sub.Name()[:len(sub.Name())-len(filepath.Ext(sub.Name()))],
 				BytesNum:        info.Size(),
 			},
 		},
@@ -129,6 +135,7 @@ func dirEntry(sub fs.DirEntry, motherPath string) (*Entry, error) {
 			RelPathToMother: filepath.ToSlash(relPathToMother),
 			Name:            d.Name(),
 			Ext:             filepath.Ext(d.Name()),
+			PureName:        d.Name()[:len(d.Name())-len(filepath.Ext(d.Name()))],
 			BytesNum:        info.Size(),
 		})
 		return nil
