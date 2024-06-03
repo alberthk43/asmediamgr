@@ -40,6 +40,7 @@ type tvEpInfo struct {
 }
 
 type PatternConfig struct {
+	Name          string   `toml:"name"`
 	PatternStr    string   `toml:"pattern"`
 	Tmdbid        *int     `toml:"tmdbid"`
 	Season        *int     `toml:"season"`
@@ -199,6 +200,9 @@ func (p *TvEpFile) patternMatch(entry *dirinfo.Entry, pattern *PatternConfig) (i
 	if info.episode == nil {
 		return nil, nil
 	}
+	if info.season == nil {
+		return nil, nil
+	}
 	if pattern.EpisodeOffset != nil {
 		*info.episode += *pattern.EpisodeOffset
 	}
@@ -233,6 +237,7 @@ func (p *TvEpFile) patternMatch(entry *dirinfo.Entry, pattern *PatternConfig) (i
 	if err != nil {
 		return nil, fmt.Errorf("get pre tmdb and season, tmdbid = %d, invalid FirstAirDate = %s", info.tmdbid, tvDetail.FirstAirDate)
 	}
+	info.originalName = tvDetail.OriginalName
 	info.year = &dt.Year
 	return info, nil
 }
