@@ -2,14 +2,15 @@ package tvepfile
 
 import (
 	"fmt"
+	"os"
 	"path/filepath"
 	"regexp"
 	"strconv"
 	"strings"
 
-	"github.com/BurntSushi/toml"
 	"github.com/go-kit/log"
 	"github.com/go-kit/log/level"
+	"gopkg.in/yaml.v2"
 
 	"github.com/albert43/asmediamgr/pkg/common"
 	"github.com/albert43/asmediamgr/pkg/dirinfo"
@@ -40,13 +41,12 @@ type tvEpInfo struct {
 }
 
 type PatternConfig struct {
-	Name          string   `toml:"name"`
-	PatternStr    string   `toml:"pattern"`
-	Tmdbid        *int     `toml:"tmdbid"`
-	Season        *int     `toml:"season"`
-	OptNames      []string `toml:"opt_names"`
-	EpisodeOffset *int     `toml:"episode_offset"`
-	Pattern       *regexp.Regexp
+	Name          string `yaml:"name"`
+	Pattern       string `yaml:"pattern"`
+	Tmdbid        *int   `yaml:"tmdbid"`
+	Season        *int   `yaml:"season"`
+	EpisodeOffset *int   `yaml:"episode_offset"`
+	PatternRegexp *regexp.Regexp
 }
 
 func (p *TvEpFile) IsDefaultEnable() bool {
@@ -54,26 +54,29 @@ func (p *TvEpFile) IsDefaultEnable() bool {
 }
 
 type Config struct {
-	Patterns []*PatternConfig `toml:"patterns"`
-}
-
-func loadConfigFile(cfgPath string) (*Config, error) {
-	cfg := &Config{}
-	_, err := toml.DecodeFile(cfgPath, cfg)
-	if err != nil {
-		return nil, fmt.Errorf("DecodeFile() error = %v", err)
-	}
-	return cfg, nil
+	Patterns []*PatternConfig `yaml:"patterns"`
 }
 
 func (p *TvEpFile) Init(cfgPath string, logger log.Logger) (priority float32, err error) {
-	cfg, _ := loadConfigFile(cfgPath) // allow no-config
-	if cfg != nil {
-		p.patterns = cfg.Patterns // TODO make 0 as invalid
+	cfg := &Config{}
+	file, err := os.ReadFile(cfgPath)
+	if err != nil {
+		if os.IsNotExist(err) {
+			return 0, nil
+		}
+		return 0, err
 	}
+	err = yaml.Unmarshal(file, cfg)
+	if err != nil {
+		return 0, fmt.Errorf("unmarshal yaml file error %v", err)
+	}
+	if len(cfg.Patterns) == 0 {
+		return 0, fmt.Errorf("no patterns in config")
+	}
+	p.patterns = cfg.Patterns
 	p.logger = logger
 	for _, pattern := range p.patterns {
-		pattern.Pattern, err = regexp.Compile(pattern.PatternStr)
+		pattern.PatternRegexp, err = regexp.Compile(pattern.Pattern)
 		if err != nil {
 			return 0, fmt.Errorf("Compile() error = %v", err)
 		}
@@ -130,7 +133,7 @@ func (p *TvEpFile) parse(entry *dirinfo.Entry) (info *tvEpInfo, err error) {
 
 func (p *TvEpFile) patternMatch(entry *dirinfo.Entry, pattern *PatternConfig) (info *tvEpInfo, err error) {
 	file := entry.FileList[0]
-	groups := pattern.Pattern.FindStringSubmatch(file.PureName)
+	groups := pattern.PatternRegexp.FindStringSubmatch(file.PureName)
 	if len(groups) == 0 {
 		return nil, nil
 	}
@@ -138,7 +141,7 @@ func (p *TvEpFile) patternMatch(entry *dirinfo.Entry, pattern *PatternConfig) (i
 		tmdbid: pattern.Tmdbid,
 		season: pattern.Season,
 	}
-	for i, group := range pattern.Pattern.SubexpNames() {
+	for i, group := range pattern.PatternRegexp.SubexpNames() {
 		if i == 0 {
 			continue
 		}

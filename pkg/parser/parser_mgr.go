@@ -23,14 +23,14 @@ import (
 var (
 	scanDirRunTotal = prometheus.NewCounterVec(
 		prometheus.CounterOpts{
-			Name: "github.com/albert43/asmediamgr_parser_scan_total",
+			Name: "asmediamgr_parser_scan_total",
 			Help: "Total number of parser scan",
 		},
 		[]string{"scan_dir"},
 	)
 	entryRunTotal = prometheus.NewCounterVec(
 		prometheus.CounterOpts{
-			Name: "github.com/albert43/asmediamgr_parser_run_total",
+			Name: "asmediamgr_parser_run_total",
 			Help: "Total number of parser run",
 		},
 		[]string{"entry_name"},
@@ -161,7 +161,7 @@ func NewParserMgr(opts *ParserMgrOpts) (*ParserMgr, error) {
 		logger: opts.Logger,
 	}
 	for name, parser := range enableParsers {
-		cfgPath := filepath.Join(opts.ConfigDir, name+".toml")
+		cfgPath := filepath.Join(opts.ConfigDir, name+".yaml")
 		priority, err := parser.Init(cfgPath, log.With(pm.logger, "parser", name))
 		if err != nil {
 			return nil, fmt.Errorf("parser %s init error: %v", name, err)

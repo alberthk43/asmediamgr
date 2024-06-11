@@ -154,31 +154,30 @@ func fileExists(filename string) bool {
 }
 
 func (d *DiskService) RenameTvEpisode(task *TvEpisodeRenameTask) error {
-	oldFile, err := os.Open(task.OldPath)
+	_, err := os.Stat(task.OldPath)
 	if err != nil {
-		return fmt.Errorf("Open() error = %v", err)
+		return fmt.Errorf("stat old file error = %v", err)
 	}
-	defer oldFile.Close()
 	motherDirStat, err := os.Stat(task.NewMotherDir)
 	if err != nil {
-		return fmt.Errorf("Stat() error = %v", err)
+		return fmt.Errorf("stat new mother dir error = %v", err)
 	}
 	motherDirMode := motherDirStat.Mode()
 	seasonDir, epFilePath, err := BuildNewEpisodePath(task)
 	if err != nil {
-		return fmt.Errorf("BuildNewEpisodePath() error = %v", err)
+		return fmt.Errorf("run BuildNewEpisodePath error = %v", err)
 	}
 	if !d.dryRunMode {
 		err = os.MkdirAll(seasonDir, motherDirMode)
 		if err != nil {
-			return fmt.Errorf("MkdirAll() error = %v", err)
+			return fmt.Errorf("run MkdirAll error = %v", err)
 		}
 		if fileExists(epFilePath) {
 			return os.ErrExist
 		}
 		err = os.Rename(task.OldPath, epFilePath)
 		if err != nil {
-			return fmt.Errorf("Rename() error = %v", err)
+			return fmt.Errorf("run Rename error = %v", err)
 		}
 	}
 	level.Info(d.logger).Log("msg", "rename tv episode", "old", task.OldPath, "new", epFilePath, "dryrun", d.dryRunMode)

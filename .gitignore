@@ -1,7 +1,5 @@
 .vscode
-.build
+build
 *.exe
 *.toml
 *.log
-build/bin/*
-__debug_bin*
