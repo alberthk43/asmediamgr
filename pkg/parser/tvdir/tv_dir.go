@@ -11,11 +11,11 @@ import (
 	"github.com/go-kit/log"
 	"github.com/go-kit/log/level"
 
-	"asmediamgr/pkg/common"
-	"asmediamgr/pkg/dirinfo"
-	"asmediamgr/pkg/disk"
-	"asmediamgr/pkg/parser"
-	"asmediamgr/pkg/utils"
+	"github.com/albert43/asmediamgr/pkg/common"
+	"github.com/albert43/asmediamgr/pkg/dirinfo"
+	"github.com/albert43/asmediamgr/pkg/disk"
+	"github.com/albert43/asmediamgr/pkg/parser"
+	"github.com/albert43/asmediamgr/pkg/utils"
 )
 
 const (

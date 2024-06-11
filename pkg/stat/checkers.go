@@ -3,8 +3,8 @@ package stat
 import (
 	"fmt"
 
-	"asmediamgr/pkg/tmdb"
-	"asmediamgr/pkg/utils"
+	"github.com/albert43/asmediamgr/pkg/tmdb"
+	"github.com/albert43/asmediamgr/pkg/utils"
 )
 
 type multipleMovieChecker struct{}

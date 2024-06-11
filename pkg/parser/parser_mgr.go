@@ -15,22 +15,22 @@ import (
 	"github.com/go-kit/log/level"
 	"github.com/prometheus/client_golang/prometheus"
 
-	"asmediamgr/pkg/common"
-	"asmediamgr/pkg/dirinfo"
-	"asmediamgr/pkg/disk"
+	"github.com/albert43/asmediamgr/pkg/common"
+	"github.com/albert43/asmediamgr/pkg/dirinfo"
+	"github.com/albert43/asmediamgr/pkg/disk"
 )
 
 var (
 	scanDirRunTotal = prometheus.NewCounterVec(
 		prometheus.CounterOpts{
-			Name: "asmediamgr_parser_scan_total",
+			Name: "github.com/albert43/asmediamgr_parser_scan_total",
 			Help: "Total number of parser scan",
 		},
 		[]string{"scan_dir"},
 	)
 	entryRunTotal = prometheus.NewCounterVec(
 		prometheus.CounterOpts{
-			Name: "asmediamgr_parser_run_total",
+			Name: "github.com/albert43/asmediamgr_parser_run_total",
 			Help: "Total number of parser run",
 		},
 		[]string{"entry_name"},

@@ -14,18 +14,18 @@ import (
 	"github.com/go-kit/log/level"
 	"github.com/prometheus/client_golang/prometheus/promhttp"
 
-	"asmediamgr/pkg/common"
-	"asmediamgr/pkg/common/aslog"
-	"asmediamgr/pkg/disk"
-	"asmediamgr/pkg/parser"
-	"asmediamgr/pkg/stat"
-	"asmediamgr/pkg/tmdb"
-	"asmediamgr/pkg/utils"
+	"github.com/albert43/asmediamgr/pkg/common"
+	"github.com/albert43/asmediamgr/pkg/common/aslog"
+	"github.com/albert43/asmediamgr/pkg/disk"
+	"github.com/albert43/asmediamgr/pkg/parser"
+	"github.com/albert43/asmediamgr/pkg/stat"
+	"github.com/albert43/asmediamgr/pkg/tmdb"
+	"github.com/albert43/asmediamgr/pkg/utils"
 
-	_ "asmediamgr/pkg/parser/moviedir"
-	_ "asmediamgr/pkg/parser/moviefile"
-	_ "asmediamgr/pkg/parser/tvdir"
-	_ "asmediamgr/pkg/parser/tvepfile"
+	_ "github.com/albert43/asmediamgr/pkg/parser/moviedir"
+	_ "github.com/albert43/asmediamgr/pkg/parser/moviefile"
+	_ "github.com/albert43/asmediamgr/pkg/parser/tvdir"
+	_ "github.com/albert43/asmediamgr/pkg/parser/tvepfile"
 )
 
 // flagConfig is the configuration for the program

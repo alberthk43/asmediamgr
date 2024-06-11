@@ -1,10 +1,11 @@
 package utils
 
 import (
-	"asmediamgr/pkg/dirinfo"
 	"fmt"
 	"strconv"
 	"strings"
+
+	"github.com/albert43/asmediamgr/pkg/dirinfo"
 )
 
 func FileAtLeast(file *dirinfo.File, atLeastBytesNum int64) bool {

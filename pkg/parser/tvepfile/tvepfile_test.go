@@ -6,9 +6,9 @@ package tvepfile
 // 	tmdb "github.com/cyruzin/golang-tmdb"
 // 	"github.com/go-kit/log"
 
-// 	"asmediamgr/pkg/dirinfo"
-// 	"asmediamgr/pkg/parser"
-// 	"asmediamgr/pkg/parser/fakes"
+// 	"github.com/albert43/asmediamgr/pkg/dirinfo"
+// 	"github.com/albert43/asmediamgr/pkg/parser"
+// 	"github.com/albert43/asmediamgr/pkg/parser/fakes"
 // )
 
 // func TestLoadConfi(t *testing.T) {
