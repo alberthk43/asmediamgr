@@ -26,21 +26,11 @@ func init() {
 	parser.RegisterParser(name, &TvEpFile{})
 }
 
-type TvEpFile struct {
-	logger   log.Logger
-	patterns []*PatternConfig
+type Config struct {
+	Patterns []*Pattern `yaml:"patterns"`
 }
 
-type tvEpInfo struct {
-	name         string
-	originalName string
-	season       *int
-	episode      *int
-	tmdbid       *int
-	year         *int
-}
-
-type PatternConfig struct {
+type Pattern struct {
 	Name          string `yaml:"name"`
 	Pattern       string `yaml:"pattern"`
 	Tmdbid        *int   `yaml:"tmdbid"`
@@ -49,12 +39,13 @@ type PatternConfig struct {
 	PatternRegexp *regexp.Regexp
 }
 
-func (p *TvEpFile) IsDefaultEnable() bool {
-	return true
+type TvEpFile struct {
+	logger   log.Logger
+	patterns []*Pattern
 }
 
-type Config struct {
-	Patterns []*PatternConfig `yaml:"patterns"`
+func (p *TvEpFile) IsDefaultEnable() bool {
+	return true
 }
 
 func (p *TvEpFile) Init(cfgPath string, logger log.Logger) (priority float32, err error) {
@@ -82,6 +73,15 @@ func (p *TvEpFile) Init(cfgPath string, logger log.Logger) (priority float32, er
 		}
 	}
 	return 0, nil
+}
+
+type tvEpInfo struct {
+	name         string
+	originalName string
+	season       *int
+	episode      *int
+	tmdbid       *int
+	year         *int
 }
 
 func (p *TvEpFile) Parse(entry *dirinfo.Entry, opts *parser.ParserMgrRunOpts) (ok bool, err error) {
@@ -131,7 +131,7 @@ func (p *TvEpFile) parse(entry *dirinfo.Entry) (info *tvEpInfo, err error) {
 	return nil, nil // no match and no error
 }
 
-func (p *TvEpFile) patternMatch(entry *dirinfo.Entry, pattern *PatternConfig) (info *tvEpInfo, err error) {
+func (p *TvEpFile) patternMatch(entry *dirinfo.Entry, pattern *Pattern) (info *tvEpInfo, err error) {
 	file := entry.FileList[0]
 	groups := pattern.PatternRegexp.FindStringSubmatch(file.PureName)
 	if len(groups) == 0 {

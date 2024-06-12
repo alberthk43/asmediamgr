@@ -185,11 +185,10 @@ func (d *DiskService) RenameTvEpisode(task *TvEpisodeRenameTask) error {
 }
 
 func (d *DiskService) RenameTvSubtitle(task *TvSubtitleRenameTask) error {
-	oldFile, err := os.Open(task.OldPath)
+	_, err := os.Stat(task.OldPath)
 	if err != nil {
 		return fmt.Errorf("Open() error = %v", err)
 	}
-	defer oldFile.Close()
 	motherDirStat, err := os.Stat(task.NewMotherDir)
 	if err != nil {
 		return fmt.Errorf("Stat() error = %v", err)
@@ -217,11 +216,10 @@ func (d *DiskService) RenameTvSubtitle(task *TvSubtitleRenameTask) error {
 }
 
 func (d *DiskService) RenameMovie(task *MovieRenameTask) error {
-	oldFile, err := os.Open(task.OldPath)
+	_, err := os.Stat(task.OldPath)
 	if err != nil {
 		return fmt.Errorf("Open() error = %v", err)
 	}
-	defer oldFile.Close()
 	motherDirStat, err := os.Stat(task.NewMotherDir)
 	if err != nil {
 		return fmt.Errorf("Stat() error = %v", err)
@@ -249,11 +247,10 @@ func (d *DiskService) RenameMovie(task *MovieRenameTask) error {
 }
 
 func (d *DiskService) RenameMovieSubtitle(task *MovieSubtitleRenameTask) error {
-	oldFile, err := os.Open(task.OldPath)
+	_, err := os.Stat(task.OldPath)
 	if err != nil {
 		return fmt.Errorf("Open() error = %v", err)
 	}
-	defer oldFile.Close()
 	motherDirStat, err := os.Stat(task.NewMotherDir)
 	if err != nil {
 		return fmt.Errorf("Stat() error = %v", err)
@@ -285,11 +282,10 @@ func (d *DiskService) MoveToTrash(task *MoveToTrashTask) error {
 	if err != nil {
 		return fmt.Errorf("Stat() error = %v", err)
 	}
-	old, err := os.Open(task.Path)
+	_, err = os.Stat(task.Path)
 	if err != nil {
 		return fmt.Errorf("Open() error = %v", err)
 	}
-	defer old.Close()
 	oldBase := filepath.Base(task.Path)
 	trashTarget := filepath.Join(task.TrashDir, oldBase)
 	if !d.dryRunMode {
