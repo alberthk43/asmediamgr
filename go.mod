@@ -1,4 +1,4 @@
-module github.com/albert43/asmediamgr
+module github.com/alberthk43/asmediamgr
 
 go 1.18
 

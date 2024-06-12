@@ -12,8 +12,8 @@ import (
 	"github.com/go-kit/log"
 	"github.com/go-kit/log/level"
 
-	"github.com/albert43/asmediamgr/pkg/dirinfo"
-	"github.com/albert43/asmediamgr/pkg/utils"
+	"github.com/alberthk43/asmediamgr/pkg/dirinfo"
+	"github.com/alberthk43/asmediamgr/pkg/utils"
 )
 
 // StatOpts is a struct that holds options to create a new Stat to run stat task

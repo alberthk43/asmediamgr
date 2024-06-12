@@ -5,7 +5,7 @@ import (
 
 	"github.com/go-kit/log"
 
-	"github.com/albert43/asmediamgr/pkg/dirinfo"
+	"github.com/alberthk43/asmediamgr/pkg/dirinfo"
 )
 
 type MockParser struct{}

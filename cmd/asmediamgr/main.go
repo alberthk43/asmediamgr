@@ -15,18 +15,18 @@ import (
 	"github.com/prometheus/client_golang/prometheus/promhttp"
 	"gopkg.in/yaml.v2"
 
-	"github.com/albert43/asmediamgr/pkg/common"
-	"github.com/albert43/asmediamgr/pkg/common/aslog"
-	"github.com/albert43/asmediamgr/pkg/disk"
-	"github.com/albert43/asmediamgr/pkg/parser"
-	"github.com/albert43/asmediamgr/pkg/stat"
-	"github.com/albert43/asmediamgr/pkg/tmdb"
-	"github.com/albert43/asmediamgr/pkg/utils"
+	"github.com/alberthk43/asmediamgr/pkg/common"
+	"github.com/alberthk43/asmediamgr/pkg/common/aslog"
+	"github.com/alberthk43/asmediamgr/pkg/disk"
+	"github.com/alberthk43/asmediamgr/pkg/parser"
+	"github.com/alberthk43/asmediamgr/pkg/stat"
+	"github.com/alberthk43/asmediamgr/pkg/tmdb"
+	"github.com/alberthk43/asmediamgr/pkg/utils"
 
-	_ "github.com/albert43/asmediamgr/pkg/parser/moviedir"
-	_ "github.com/albert43/asmediamgr/pkg/parser/moviefile"
-	_ "github.com/albert43/asmediamgr/pkg/parser/tvdir"
-	_ "github.com/albert43/asmediamgr/pkg/parser/tvepfile"
+	_ "github.com/alberthk43/asmediamgr/pkg/parser/moviedir"
+	_ "github.com/alberthk43/asmediamgr/pkg/parser/moviefile"
+	_ "github.com/alberthk43/asmediamgr/pkg/parser/tvdir"
+	_ "github.com/alberthk43/asmediamgr/pkg/parser/tvepfile"
 )
 
 var configFile string

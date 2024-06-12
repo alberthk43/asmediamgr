@@ -5,7 +5,7 @@ import (
 	"strconv"
 	"strings"
 
-	"github.com/albert43/asmediamgr/pkg/dirinfo"
+	"github.com/alberthk43/asmediamgr/pkg/dirinfo"
 )
 
 func FileAtLeast(file *dirinfo.File, atLeastBytesNum int64) bool {
