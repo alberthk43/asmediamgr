@@ -27,7 +27,7 @@ build:
 		-gcflags='$(GCFLAGS)' \
 		-ldflags="$(LDFLAGS)" \
 		-o $(BINARY_ROOT)/ \
-		asmediamgr/cmd
+		cmd/asmediamgr
 
 .PHONY: test
 test:
