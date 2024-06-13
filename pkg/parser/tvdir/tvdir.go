@@ -257,30 +257,31 @@ func (p *TvDir) matchPattern(entry *dirinfo.Entry, pattern *Pattern) (info *tvIn
 		fileNameWithoutExt := file.Name[:len(file.Name)-len(file.Ext)-1]
 		mediaFilesRev[fileNameWithoutExt] = *mKey
 	}
-	if pattern.SubtitlePatternRegexp != nil { // subtitle is optional
-		for _, file := range entry.FileList {
-			if !utils.IsSubtitleExt(file.Ext) {
-				continue
-			}
-			fileNameWithoutExt := file.Name[:len(file.Name)-len(file.Ext)-1]
-			mKey, ok := mediaFilesRev[fileNameWithoutExt]
-			if ok { // same name subtitle file see as media file's default subtitle
-				sKey := &subtitleKey{tag: "", season: mKey.season, episode: mKey.episode}
-				subtitleFiles[*sKey] = file
-				continue
-			}
-			sKey, err := p.matchSubtitleFile(file, pattern, info)
-			if err != nil {
-				return nil, err
-			}
-			if sKey == nil {
-				continue
-			}
-			if sKey.season < 0 || sKey.episode < 0 {
-				continue
-			}
-			subtitleFiles[*sKey] = file
+	for _, file := range entry.FileList {
+		if !utils.IsSubtitleExt(file.Ext) {
+			continue
 		}
+		fileNameWithoutExt := file.Name[:len(file.Name)-len(file.Ext)-1]
+		mKey, ok := mediaFilesRev[fileNameWithoutExt]
+		if ok { // same name subtitle file see as media file's default subtitle
+			sKey := &subtitleKey{tag: "", season: mKey.season, episode: mKey.episode}
+			subtitleFiles[*sKey] = file
+			continue
+		}
+		if pattern.SubtitlePatternRegexp != nil { // subtitle is optional
+			continue
+		}
+		sKey, err := p.matchSubtitleFile(file, pattern, info)
+		if err != nil {
+			return nil, err
+		}
+		if sKey == nil {
+			continue
+		}
+		if sKey.season < 0 || sKey.episode < 0 {
+			continue
+		}
+		subtitleFiles[*sKey] = file
 	}
 	if len(mediaFiles) <= 0 && len(subtitleFiles) <= 0 { // nothing to do, return no err but also no result
 		return nil, nil
