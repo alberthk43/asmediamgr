@@ -89,7 +89,7 @@ func (p *MovieFile) Parse(entry *dirinfo.Entry, opts *parser.ParserMgrRunOpts) (
 		OldPath:      filepath.Join(entry.MotherPath, file.RelPathToMother),
 		NewMotherDir: movieTargetDir,
 		OriginalName: info.originalName,
-		Year:         info.year,
+		Year:         *info.year,
 		Tmdbid:       info.tmdbid,
 	})
 	if err != nil {
@@ -101,7 +101,7 @@ func (p *MovieFile) Parse(entry *dirinfo.Entry, opts *parser.ParserMgrRunOpts) (
 type movieInfo struct {
 	name         string
 	originalName string
-	year         int
+	year         *int
 	tmdbid       int
 }
 
@@ -155,7 +155,7 @@ func (p *MovieFile) patternMatch(entry *dirinfo.Entry, pattern *PatternConfig) (
 			if err != nil {
 				return nil, fmt.Errorf("failed to parse year: %w", err)
 			}
-			info.year = n
+			info.year = &n
 		default:
 			return nil, fmt.Errorf("unknown group: %s", group)
 		}
@@ -163,8 +163,8 @@ func (p *MovieFile) patternMatch(entry *dirinfo.Entry, pattern *PatternConfig) (
 	tmdbService := parser.GetDefaultTmdbService()
 	if info.tmdbid <= 0 {
 		searchOpts := defaultTmdbUrlOptions
-		if info.year > common.ValidStartYear {
-			searchOpts["year"] = strconv.Itoa(info.year)
+		if info.year != nil {
+			searchOpts["year"] = strconv.Itoa(*info.year)
 		}
 		results, err := tmdbService.GetSearchMovies(info.name, searchOpts)
 		if err != nil {
@@ -191,6 +191,6 @@ func (p *MovieFile) patternMatch(entry *dirinfo.Entry, pattern *PatternConfig) (
 		return nil, fmt.Errorf("failed to parse release date: %w", err)
 	}
 	info.originalName = detail.OriginalTitle
-	info.year = dt.Year
+	info.year = &dt.Year
 	return info, nil
 }

@@ -7,9 +7,9 @@ import (
 	"regexp"
 	"strconv"
 
-	"github.com/BurntSushi/toml"
 	"github.com/go-kit/log"
 	"github.com/go-kit/log/level"
+	"gopkg.in/yaml.v2"
 
 	"github.com/alberthk43/asmediamgr/pkg/common"
 	"github.com/alberthk43/asmediamgr/pkg/dirinfo"
@@ -26,32 +26,37 @@ func init() {
 	parser.RegisterParser(name, &TvDir{})
 }
 
+type Pattern struct {
+	Name                    string `yaml:"name"`
+	DirPattern              string `yaml:"dir_pattern"`
+	EpisodePattern          string `yaml:"episode_pattern"`
+	SubtitlePattern         string `yaml:"subtitle_pattern"`
+	EpisodeFileAtLeast      string `yaml:"episode_file_at_least"`
+	Tmdbid                  *int   `yaml:"tmdbid"`
+	Season                  *int   `yaml:"season"`
+	DirPatternRegexp        *regexp.Regexp
+	EpisodePatternRegexp    *regexp.Regexp
+	EpisodeFileAtLeastBytes int64
+	SubtitlePatternRegexp   *regexp.Regexp
+}
+
+type Config struct {
+	Patterns []*Pattern `yaml:"patterns"`
+}
+
 type TvDir struct {
 	logger   log.Logger
 	patterns []*Pattern
 }
 
-type Pattern struct {
-	DirPatternStr      string `toml:"dir_pattern"`
-	EpisodePatternStr  string `toml:"episode_pattern"`
-	EpisodeFileAtLeast string `toml:"episode_file_at_least"`
-	SubtitlePatternStr string `toml:"subtitle_pattern"`
-	Season             *int   `toml:"season"`
-
-	DirPattern              *regexp.Regexp
-	EpisodePattern          *regexp.Regexp
-	EpisodeFileAtLeastBytes int64
-	SubtitlePattern         *regexp.Regexp
-}
-
-type Config struct {
-	Patterns []*Pattern `toml:"patterns"`
-}
-
 func (p *TvDir) Init(cfgPath string, logger log.Logger) (priority float32, err error) {
 	p.logger = logger
 	cfg := &Config{}
-	_, err = toml.DecodeFile(cfgPath, cfg)
+	data, err := os.ReadFile(cfgPath)
+	if err != nil {
+		return 0, err
+	}
+	err = yaml.Unmarshal(data, cfg)
 	if err != nil {
 		if os.IsNotExist(err) {
 			return 0, nil
@@ -59,11 +64,17 @@ func (p *TvDir) Init(cfgPath string, logger log.Logger) (priority float32, err e
 		return 0, err
 	}
 	for _, pattern := range cfg.Patterns {
-		pattern.DirPattern, err = regexp.Compile(pattern.DirPatternStr)
+		if pattern.DirPattern == "" {
+			return 0, fmt.Errorf("no dir pattern in config")
+		}
+		pattern.DirPatternRegexp, err = regexp.Compile(pattern.DirPattern)
 		if err != nil {
 			return 0, err
 		}
-		pattern.EpisodePattern, err = regexp.Compile(pattern.EpisodePatternStr)
+		if pattern.EpisodePattern == "" {
+			return 0, fmt.Errorf("no episode pattern in config")
+		}
+		pattern.EpisodePatternRegexp, err = regexp.Compile(pattern.EpisodePattern)
 		if err != nil {
 			return 0, err
 		}
@@ -71,9 +82,11 @@ func (p *TvDir) Init(cfgPath string, logger log.Logger) (priority float32, err e
 		if err != nil {
 			return 0, err
 		}
-		pattern.SubtitlePattern, err = regexp.Compile(pattern.SubtitlePatternStr)
-		if err != nil {
-			return 0, err
+		if pattern.SubtitlePattern != "" {
+			pattern.SubtitlePatternRegexp, err = regexp.Compile(pattern.SubtitlePattern)
+			if err != nil {
+				return 0, err
+			}
 		}
 	}
 	p.patterns = cfg.Patterns
@@ -82,6 +95,16 @@ func (p *TvDir) Init(cfgPath string, logger log.Logger) (priority float32, err e
 
 func (p *TvDir) IsDefaultEnable() bool {
 	return true
+}
+
+type tvInfo struct {
+	name          string
+	year          *int
+	tmdbid        *int
+	season        *int
+	originalName  string
+	mediaFiles    map[episodeKey]*dirinfo.File
+	subtitleFiles map[subtitleKey]*dirinfo.File
 }
 
 func (p *TvDir) Parse(entry *dirinfo.Entry, opts *parser.ParserMgrRunOpts) (ok bool, err error) {
@@ -113,8 +136,8 @@ func (p *TvDir) Parse(entry *dirinfo.Entry, opts *parser.ParserMgrRunOpts) (ok b
 			OldPath:      filepath.Join(entry.MotherPath, file.RelPathToMother),
 			NewMotherDir: tvTargetDir,
 			OriginalName: info.originalName,
-			Year:         info.year,
-			Tmdbid:       info.tmdbid,
+			Year:         *info.year,
+			Tmdbid:       *info.tmdbid,
 			Season:       mKey.season,
 			Episode:      mKey.episode,
 		})
@@ -127,11 +150,11 @@ func (p *TvDir) Parse(entry *dirinfo.Entry, opts *parser.ParserMgrRunOpts) (ok b
 			OldPath:      filepath.Join(entry.MotherPath, file.RelPathToMother),
 			NewMotherDir: tvTargetDir,
 			OriginalName: info.originalName,
-			Year:         info.year,
-			Tmdbid:       info.tmdbid,
+			Year:         *info.year,
+			Tmdbid:       *info.tmdbid,
 			Season:       sKey.season,
 			Episode:      sKey.episode,
-			Language:     sKey.lang,
+			Language:     sKey.tag,
 		})
 		if err != nil {
 			return false, fmt.Errorf("rename tv subtitle error: %v", err)
@@ -145,16 +168,6 @@ func (p *TvDir) Parse(entry *dirinfo.Entry, opts *parser.ParserMgrRunOpts) (ok b
 		level.Warn(p.logger).Log("msg", "move to trash error", "err", err)
 	}
 	return true, nil
-}
-
-type tvInfo struct {
-	name          string
-	year          int
-	tmdbid        int
-	season        int
-	originalName  string
-	mediaFiles    map[episodeKey]*dirinfo.File
-	subtitleFiles map[subtitleKey]*dirinfo.File
 }
 
 func (p *TvDir) parse(entry *dirinfo.Entry) (info *tvInfo, err error) {
@@ -176,18 +189,21 @@ type episodeKey struct {
 }
 
 type subtitleKey struct {
-	lang    string
+	tag     string
 	season  int
 	episode int
 }
 
 func (p *TvDir) matchPattern(entry *dirinfo.Entry, pattern *Pattern) (info *tvInfo, err error) {
-	groups := pattern.DirPattern.FindStringSubmatch(entry.Name())
+	groups := pattern.DirPatternRegexp.FindStringSubmatch(entry.Name())
 	if len(groups) <= 0 {
 		return nil, nil
 	}
-	info = &tvInfo{}
-	for i, name := range pattern.DirPattern.SubexpNames() {
+	info = &tvInfo{
+		tmdbid: pattern.Tmdbid,
+		season: pattern.Season,
+	}
+	for i, name := range pattern.DirPatternRegexp.SubexpNames() {
 		if i == 0 {
 			continue
 		}
@@ -199,56 +215,61 @@ func (p *TvDir) matchPattern(entry *dirinfo.Entry, pattern *Pattern) (info *tvIn
 			if err != nil {
 				return nil, err
 			}
-			info.year = n
+			info.year = &n
 		case "tmdbid":
 			n, err := strconv.Atoi(groups[i])
 			if err != nil {
 				return nil, err
 			}
-			info.tmdbid = n
+			info.tmdbid = &n
 		case "season":
 			n, err := strconv.Atoi(groups[i])
 			if err != nil {
 				return nil, err
 			}
-			info.season = n
+			info.season = &n
 		default:
 			return nil, fmt.Errorf("unknown group name: %s", name)
 		}
 	}
 	mediaFiles := make(map[episodeKey]*dirinfo.File)
-	mediaFileRev := make(map[string]*episodeKey)
+	mediaFilesRev := make(map[string]episodeKey) // media file name without ext -> key
 	subtitleFiles := make(map[subtitleKey]*dirinfo.File)
+	// find all media files with no dup key
 	for _, file := range entry.FileList {
-		if utils.IsMediaExt(file.Ext) && utils.FileAtLeast(file, pattern.EpisodeFileAtLeastBytes) {
-			mKey, err := p.matchMediaFile(file, pattern, info)
-			if err != nil {
-				return nil, err
-			}
-			if mKey == nil {
-				continue
-			}
-			if mKey.season < 0 || mKey.episode < 0 {
-				continue
-			}
-			mediaFiles[*mKey] = file
-			fileNameWithoutExt := file.Name[:len(file.Name)-len(file.Ext)-1]
-			mediaFileRev[fileNameWithoutExt] = mKey
+		if !utils.IsMediaExt(file.Ext) || !utils.FileAtLeast(file, pattern.EpisodeFileAtLeastBytes) {
+			continue
 		}
+		mKey, err := p.matchMediaFile(file, pattern, info)
+		if err != nil {
+			return nil, err
+		}
+		if mKey == nil {
+			continue
+		}
+		if mKey.season < 0 || mKey.episode < 0 {
+			continue
+		}
+		if _, ok := mediaFiles[*mKey]; ok {
+			return nil, fmt.Errorf("duplicate media file key: %v", mKey)
+		}
+		mediaFiles[*mKey] = file
+		fileNameWithoutExt := file.Name[:len(file.Name)-len(file.Ext)-1]
+		mediaFilesRev[fileNameWithoutExt] = *mKey
 	}
-	for _, file := range entry.FileList {
-		if utils.IsSubtitleExt(file.Ext) {
+	if pattern.SubtitlePatternRegexp != nil { // subtitle is optional
+		for _, file := range entry.FileList {
+			if !utils.IsSubtitleExt(file.Ext) {
+				continue
+			}
 			fileNameWithoutExt := file.Name[:len(file.Name)-len(file.Ext)-1]
-			mKey, ok := mediaFileRev[fileNameWithoutExt]
-			if ok {
-				sKey := &subtitleKey{lang: "", season: mKey.season, episode: mKey.episode}
+			mKey, ok := mediaFilesRev[fileNameWithoutExt]
+			if ok { // same name subtitle file see as media file's default subtitle
+				sKey := &subtitleKey{tag: "", season: mKey.season, episode: mKey.episode}
 				subtitleFiles[*sKey] = file
 				continue
 			}
-			if pattern.SubtitlePatternStr == "" {
-				continue
-			}
-			sKey, err := p.matchSubtitleFile(file, pattern)
+			sKey, err := p.matchSubtitleFile(file, pattern, info)
 			if err != nil {
 				return nil, err
 			}
@@ -261,14 +282,14 @@ func (p *TvDir) matchPattern(entry *dirinfo.Entry, pattern *Pattern) (info *tvIn
 			subtitleFiles[*sKey] = file
 		}
 	}
-	if len(mediaFiles) <= 0 && len(subtitleFiles) <= 0 {
+	if len(mediaFiles) <= 0 && len(subtitleFiles) <= 0 { // nothing to do, return no err but also no result
 		return nil, nil
 	}
 	tmdbService := parser.GetDefaultTmdbService()
-	if info.tmdbid <= 0 {
+	if info.tmdbid == nil {
 		searchOpts := common.DefaultTmdbSearchOpts
-		if info.year >= common.ValidStartYear {
-			searchOpts["year"] = strconv.Itoa(info.year)
+		if info.year != nil {
+			searchOpts["year"] = strconv.Itoa(*info.year)
 		}
 		results, err := tmdbService.GetSearchTVShow(info.name, searchOpts)
 		if err != nil {
@@ -284,9 +305,10 @@ func (p *TvDir) matchPattern(entry *dirinfo.Entry, pattern *Pattern) (info *tvIn
 			}
 			return nil, fmt.Errorf("multiple tvs found: %v", hits)
 		}
-		info.tmdbid = int(results.Results[0].ID)
+		tmdbid := int(results.Results[0].ID)
+		info.tmdbid = &tmdbid
 	}
-	detail, err := tmdbService.GetTVDetails(info.tmdbid, common.DefaultTmdbSearchOpts)
+	detail, err := tmdbService.GetTVDetails(*info.tmdbid, common.DefaultTmdbSearchOpts)
 	if err != nil {
 		return nil, err
 	}
@@ -295,76 +317,81 @@ func (p *TvDir) matchPattern(entry *dirinfo.Entry, pattern *Pattern) (info *tvIn
 	if err != nil {
 		return nil, err
 	}
-	info.year = dt.Year
+	info.year = &dt.Year
 	info.mediaFiles = mediaFiles
 	info.subtitleFiles = subtitleFiles
 	return info, nil
 }
 
-func (p *TvDir) matchMediaFile(file *dirinfo.File, pattern *Pattern, tvInfo *tvInfo) (key *episodeKey, err error) {
-	groups := pattern.EpisodePattern.FindStringSubmatch(file.PureName)
+func (p *TvDir) matchMediaFile(file *dirinfo.File, pattern *Pattern, ti *tvInfo) (key *episodeKey, err error) {
+	groups := pattern.EpisodePatternRegexp.FindStringSubmatch(file.PureName)
 	if len(groups) <= 0 {
 		return nil, nil
 	}
-	key = &episodeKey{season: -1, episode: -1}
-	if pattern.Season != nil && *pattern.Season >= 0 {
-		key.season = *pattern.Season
-	}
-	if tvInfo.season >= 0 {
-		key.season = tvInfo.season
-	}
-	for i, name := range pattern.EpisodePattern.SubexpNames() {
+	season := ti.season
+	var episode *int
+	for i, name := range pattern.EpisodePatternRegexp.SubexpNames() {
 		if i == 0 {
 			continue
 		}
 		switch name {
 		case "season":
-			season, err := strconv.Atoi(groups[i])
+			n, err := strconv.Atoi(groups[i])
 			if err != nil {
 				return nil, err
 			}
-			key.season = season
+			season = &n
 		case "episode":
-			episode, err := strconv.Atoi(groups[i])
+			n, err := strconv.Atoi(groups[i])
 			if err != nil {
 				return nil, err
 			}
-			key.episode = episode
+			episode = &n
 		default:
 			return nil, fmt.Errorf("unknown group name: %s", name)
 		}
 	}
+	if season == nil || episode == nil {
+		return nil, fmt.Errorf("no season or episode found in media file: %s", file.Name)
+	}
+	key = &episodeKey{season: *season, episode: *episode}
 	return key, nil
 }
 
-func (p *TvDir) matchSubtitleFile(file *dirinfo.File, pattern *Pattern) (key *subtitleKey, err error) {
-	groups := pattern.SubtitlePattern.FindStringSubmatch(file.Name)
+func (p *TvDir) matchSubtitleFile(file *dirinfo.File, pattern *Pattern, ti *tvInfo) (key *subtitleKey, err error) {
+	groups := pattern.SubtitlePatternRegexp.FindStringSubmatch(file.Name)
 	if len(groups) <= 0 {
 		return nil, nil
 	}
-	key = &subtitleKey{lang: "", season: -1, episode: -1}
-	for i, name := range pattern.DirPattern.SubexpNames() {
+	season := ti.season
+	var episode *int
+	tag := ""
+	for i, name := range pattern.DirPatternRegexp.SubexpNames() {
 		if i == 0 {
 			continue
 		}
 		switch name {
-		case "lang":
-			key.lang = groups[i]
+		case "tag":
+			tag = groups[i]
 		case "season":
-			season, err := strconv.Atoi(groups[i])
+			n, err := strconv.Atoi(groups[i])
 			if err != nil {
 				return nil, err
 			}
-			key.season = season
+			season = &n
 		case "episode":
-			episode, err := strconv.Atoi(groups[i])
+			n, err := strconv.Atoi(groups[i])
 			if err != nil {
 				return nil, err
 			}
-			key.episode = episode
+			episode = &n
 		default:
 			return nil, fmt.Errorf("unknown group name: %s", name)
 		}
 	}
+	if season == nil || episode == nil {
+		return nil, fmt.Errorf("no season or episode found in subtitle file: %s", file.Name)
+	}
+	key = &subtitleKey{tag: tag, season: *season, episode: *episode}
 	return key, nil
 }

@@ -29,6 +29,9 @@ var suffixMapping = []sizeInfo{
 }
 
 func SizeStringToBytesNum(str string) (int64, error) {
+	if str == "" {
+		return 0, nil
+	}
 	str, _ = strings.CutSuffix(str, "B")
 	str = strings.ToLower(str)
 	for _, info := range suffixMapping {

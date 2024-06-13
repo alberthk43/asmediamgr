@@ -95,7 +95,7 @@ func (p *TvEpFile) Parse(entry *dirinfo.Entry, opts *parser.ParserMgrRunOpts) (o
 	}
 	info, err := p.parse(entry)
 	if err != nil {
-		return false, fmt.Errorf("parse() error = %v", err)
+		return false, fmt.Errorf("parse error = %v", err)
 	}
 	if info == nil {
 		return false, nil // no match and no error

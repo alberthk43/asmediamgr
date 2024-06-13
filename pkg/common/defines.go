@@ -8,10 +8,6 @@ const (
 	MediaTypeTv
 )
 
-const (
-	ValidStartYear = 1900
-)
-
 var (
 	DefaultTmdbSearchOpts = map[string]string{
 		"include_adult": "true",
