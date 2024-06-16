@@ -263,7 +263,7 @@ func (pm *ParserMgr) runParsersWithDir(wg *sync.WaitGroup, scanDir string, opts 
 		if err != nil {
 			level.Error(pm.logger).Log("msg", fmt.Sprintf("failed to scan motherDir: %v", err))
 			time.Sleep(pm.sleepDurScan)
-			break
+			continue
 		}
 		entriesMap := make(map[string]struct{})
 		for _, entry := range entries {
