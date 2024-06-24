@@ -2,14 +2,15 @@ package moviefile
 
 import (
 	"fmt"
+	"os"
 	"path/filepath"
 	"regexp"
 	"strconv"
 	"strings"
 
-	"github.com/BurntSushi/toml"
 	"github.com/go-kit/log"
 	"github.com/go-kit/log/level"
+	"gopkg.in/yaml.v2"
 
 	"github.com/alberthk43/asmediamgr/pkg/common"
 	"github.com/alberthk43/asmediamgr/pkg/dirinfo"
@@ -25,23 +26,31 @@ func init() {
 	parser.RegisterParser(name, &MovieFile{})
 }
 
-type PatternConfig struct {
-	PatternStr string `toml:"pattern"`
-	Pattern    *regexp.Regexp
+type Config struct {
+	Patterns []*Pattern `yaml:"patterns"`
+}
+
+type Pattern struct {
+	Name          string `yaml:"name"`
+	Pattern       string `yaml:"pattern"`
+	PatternRegexp *regexp.Regexp
 }
 
 type MovieFile struct {
 	logger   log.Logger
-	patterns []*PatternConfig
-}
-
-type Config struct {
-	Patterns []*PatternConfig `toml:"patterns"`
+	patterns []*Pattern
 }
 
 func loadConfigFile(cfgPath string) (*Config, error) {
 	cfg := &Config{}
-	_, err := toml.DecodeFile(cfgPath, cfg)
+	data, err := os.ReadFile(cfgPath)
+	if err != nil {
+		if os.IsNotExist(err) {
+			return nil, nil
+		}
+		return nil, fmt.Errorf("failed to read config file: %w", err)
+	}
+	err = yaml.Unmarshal(data, cfg)
 	if err != nil {
 		return nil, fmt.Errorf("failed to decode config file: %w", err)
 	}
@@ -55,7 +64,7 @@ func (p *MovieFile) Init(cfgPath string, logger log.Logger) (priority float32, e
 	}
 	p.logger = logger
 	for _, pattern := range p.patterns {
-		pattern.Pattern, err = regexp.Compile(pattern.PatternStr)
+		pattern.PatternRegexp, err = regexp.Compile(pattern.Pattern)
 		if err != nil {
 			return 0, fmt.Errorf("failed to compile pattern: %w", err)
 		}
@@ -90,7 +99,7 @@ func (p *MovieFile) Parse(entry *dirinfo.Entry, opts *parser.ParserMgrRunOpts) (
 		NewMotherDir: movieTargetDir,
 		OriginalName: info.originalName,
 		Year:         *info.year,
-		Tmdbid:       info.tmdbid,
+		Tmdbid:       *info.tmdbid,
 	})
 	if err != nil {
 		return false, fmt.Errorf("failed to rename movie: %w", err)
@@ -102,7 +111,7 @@ type movieInfo struct {
 	name         string
 	originalName string
 	year         *int
-	tmdbid       int
+	tmdbid       *int
 }
 
 func (p *MovieFile) parse(entry *dirinfo.Entry) (*movieInfo, error) {
@@ -118,24 +127,18 @@ func (p *MovieFile) parse(entry *dirinfo.Entry) (*movieInfo, error) {
 	return nil, nil
 }
 
-var (
-	defaultTmdbUrlOptions = map[string]string{
-		"include_adult": "true",
-	}
-)
-
-func (p *MovieFile) patternMatch(entry *dirinfo.Entry, pattern *PatternConfig) (*movieInfo, error) {
+func (p *MovieFile) patternMatch(entry *dirinfo.Entry, pattern *Pattern) (*movieInfo, error) {
 	file := entry.FileList[0]
 	entryNameWithoutExt, _ := strings.CutSuffix(file.Name, file.Ext)
-	groups := pattern.Pattern.FindStringSubmatch(entryNameWithoutExt)
+	groups := pattern.PatternRegexp.FindStringSubmatch(entryNameWithoutExt)
 	if len(groups) == 0 {
 		return nil, nil
 	}
 	info := &movieInfo{
 		name:   "",
-		tmdbid: -1,
+		tmdbid: nil,
 	}
-	for i, group := range pattern.Pattern.SubexpNames() {
+	for i, group := range pattern.PatternRegexp.SubexpNames() {
 		if i == 0 {
 			continue
 		}
@@ -149,7 +152,7 @@ func (p *MovieFile) patternMatch(entry *dirinfo.Entry, pattern *PatternConfig) (
 			if err != nil {
 				return nil, fmt.Errorf("failed to parse tmdbid: %w", err)
 			}
-			info.tmdbid = n
+			info.tmdbid = &n
 		case "year":
 			n, err := strconv.Atoi(groups[i])
 			if err != nil {
@@ -161,8 +164,8 @@ func (p *MovieFile) patternMatch(entry *dirinfo.Entry, pattern *PatternConfig) (
 		}
 	}
 	tmdbService := parser.GetDefaultTmdbService()
-	if info.tmdbid <= 0 {
-		searchOpts := defaultTmdbUrlOptions
+	if info.tmdbid == nil {
+		searchOpts := common.DefaultTmdbSearchOpts
 		if info.year != nil {
 			searchOpts["year"] = strconv.Itoa(*info.year)
 		}
@@ -180,9 +183,10 @@ func (p *MovieFile) patternMatch(entry *dirinfo.Entry, pattern *PatternConfig) (
 			}
 			return nil, fmt.Errorf("multiple movies found, first 3 hits: %v", hits)
 		}
-		info.tmdbid = int(results.Results[0].ID)
+		n := int(results.Results[0].ID)
+		info.tmdbid = &n
 	}
-	detail, err := tmdbService.GetMovieDetails(info.tmdbid, defaultTmdbUrlOptions)
+	detail, err := tmdbService.GetMovieDetails(*info.tmdbid, common.DefaultTmdbSearchOpts)
 	if err != nil {
 		return nil, err
 	}
