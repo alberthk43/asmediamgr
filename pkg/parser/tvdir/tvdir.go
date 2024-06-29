@@ -284,9 +284,11 @@ func (p *TvDir) matchPattern(entry *dirinfo.Entry, pattern *Pattern) (info *tvIn
 		subtitleFiles[*sKey] = file
 	}
 	if len(mediaFiles) <= 0 && len(subtitleFiles) <= 0 { // nothing to do, return no err but also no result
+		level.Info(p.logger).Log("msg", "no media or subtitle files found in dir", "dir", entry.Name())
 		return nil, nil
 	}
 	tmdbService := parser.GetDefaultTmdbService()
+	level.Info(p.logger).Log("msg", "search tv show", "name", info.name, "year", info.year)
 	if info.tmdbid == nil {
 		searchOpts := common.DefaultTmdbSearchOpts
 		if info.year != nil {
